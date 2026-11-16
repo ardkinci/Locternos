@@ -8,6 +8,7 @@ import type { Config } from './config.js';
 import { openDatabase, type Db } from './db/client.js';
 import { runMigrations } from './db/migrate.js';
 import { ensureDataLayout } from './data-dir.js';
+import { recoverOrphanedRuns } from './runs/service.js';
 import { authRoutes } from './routes/auth.js';
 import { healthRoutes } from './routes/health.js';
 import { serverRoutes } from './routes/servers.js';
@@ -27,6 +28,13 @@ export async function buildApp(config: Config): Promise<FastifyInstance> {
 
   const database = openDatabase(config.paths.database);
   runMigrations(database.db);
+
+  // Reconcile database state if the backend restarted while runs were marked as running.
+  const { recovered, stillRunning } = recoverOrphanedRuns(database.db);
+  if (recovered > 0 || stillRunning > 0) {
+    app.log.info({ recovered, stillRunning }, 'reconciled orphaned server runs');
+  }
+
   app.decorate('db', database.db);
   app.addHook('onClose', async () => database.close());
 

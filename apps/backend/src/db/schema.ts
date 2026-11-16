@@ -1,11 +1,17 @@
-import { integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
+import { index, integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 import {
+  artifactKindSchema,
+  artifactSourceTypeSchema,
   jvmFlagsProfileSchema,
+  logLevelSchema,
   logRetentionPolicySchema,
   serverCoreTypeSchema,
   serverStatusSchema,
   userRoleSchema,
+  type ArtifactKind,
+  type ArtifactSourceType,
   type JvmFlagsProfile,
+  type LogLevel,
   type LogRetentionPolicy,
   type ServerCoreType,
   type ServerStatus,
@@ -20,6 +26,12 @@ const jvmFlagsProfiles = jvmFlagsProfileSchema.options as [JvmFlagsProfile, ...J
 const logRetentionPolicies = logRetentionPolicySchema.options as [
   LogRetentionPolicy,
   ...LogRetentionPolicy[],
+];
+const logLevels = logLevelSchema.options as [LogLevel, ...LogLevel[]];
+const artifactKinds = artifactKindSchema.options as [ArtifactKind, ...ArtifactKind[]];
+const artifactSourceTypes = artifactSourceTypeSchema.options as [
+  ArtifactSourceType,
+  ...ArtifactSourceType[],
 ];
 
 /** Panel accounts. Phase 1 only has the single Admin created on first run. */
@@ -71,3 +83,94 @@ export const servers = sqliteTable('servers', {
   createdAt: text('created_at').notNull(),
   updatedAt: text('updated_at').notNull(),
 });
+
+/**
+ * One process lifetime of a server. `stoppedAt` stays null while the run is
+ * open, which makes closed runs distinguishable without inspecting `exitCode`.
+ */
+export const serverRuns = sqliteTable(
+  'server_runs',
+  {
+    id: text('id').primaryKey(),
+    serverId: text('server_id')
+      .notNull()
+      .references(() => servers.id, { onDelete: 'cascade' }),
+    pid: integer('pid'),
+    startedAt: text('started_at').notNull(),
+    stoppedAt: text('stopped_at'),
+    exitCode: integer('exit_code'),
+    stopReason: text('stop_reason'),
+    peakRamMb: integer('peak_ram_mb'),
+  },
+  (table) => [index('server_runs_server_started_idx').on(table.serverId, table.startedAt)],
+);
+
+/**
+ * Parsed console output. The `server_logs_fts` FTS5 virtual table mirrors
+ * `message` through triggers created in the migration, so keyword search stays
+ * fast without a second write path.
+ */
+export const serverLogs = sqliteTable(
+  'server_logs',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    runId: text('run_id')
+      .notNull()
+      .references(() => serverRuns.id, { onDelete: 'cascade' }),
+    serverId: text('server_id')
+      .notNull()
+      .references(() => servers.id, { onDelete: 'cascade' }),
+    timestamp: text('timestamp').notNull(),
+    level: text('level', { enum: logLevels }).notNull(),
+    thread: text('thread'),
+    message: text('message').notNull(),
+  },
+  (table) => [
+    index('server_logs_server_timestamp_idx').on(table.serverId, table.timestamp),
+    index('server_logs_run_idx').on(table.runId),
+  ],
+);
+
+/**
+ * Installed cores, plugins and mods. Each row records the resolution details
+ * for auditing and future updates (e.g., Modrinth dependency detection).
+ */
+export const artifacts = sqliteTable(
+  'artifacts',
+  {
+    id: text('id').primaryKey(),
+    serverId: text('server_id')
+      .notNull()
+      .references(() => servers.id, { onDelete: 'cascade' }),
+    kind: text('kind', { enum: artifactKinds }).notNull(),
+    filename: text('filename').notNull(),
+    sourceType: text('source_type', { enum: artifactSourceTypes }).notNull(),
+    sourceUrl: text('source_url'),
+    projectId: text('project_id'),
+    versionId: text('version_id'),
+    sha256: text('sha256').notNull(),
+    installedAt: text('installed_at').notNull(),
+  },
+  (table) => [index('artifacts_server_kind_idx').on(table.serverId, table.kind)],
+);
+
+/**
+ * Configuration and operational audit events (server created, config changed,
+ * plugin installed, EULA accepted). `serverId` and `userId` are optional to
+ * support system events.
+ */
+export const auditEvents = sqliteTable(
+  'audit_events',
+  {
+    id: text('id').primaryKey(),
+    serverId: text('server_id').references(() => servers.id, { onDelete: 'cascade' }),
+    userId: text('user_id').references(() => users.id, { onDelete: 'cascade' }),
+    action: text('action').notNull(),
+    details: text('details').notNull(), // JSON stringified
+    createdAt: text('created_at').notNull(),
+  },
+  (table) => [
+    index('audit_events_server_created_idx').on(table.serverId, table.createdAt),
+    index('audit_events_user_idx').on(table.userId),
+  ],
+);
