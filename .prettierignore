@@ -1,0 +1,10 @@
+node_modules
+dist
+data
+package-lock.json
+CHANGELOG.md
+.github
+AGENTS.md
+PROGRESS.md
+README.md
+LICENSE
