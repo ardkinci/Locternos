@@ -77,7 +77,7 @@ A self-hosted, local-first Aternos alternative for creating, configuring, and ma
 
 ### 1.6 Basic Web Interface (MVP)
 
-- [ ] **First-Run Setup & Login:** Create Admin account on initial launch (email + password); login gate for subsequent visits
+- [x] **First-Run Setup & Login:** Create Admin account on initial launch (email + password); login gate for subsequent visits
 - [ ] **Dashboard / Server List:** View all local servers, status badges, MC version/core, RAM allocation, live metrics, and quick Start/Stop actions
 - [ ] **Create Server Wizard:** Select Vanilla / Paper / Fabric / Custom `.jar` (upload or direct URL), set name, port, RAM slider, log retention policy (`none` to `forever`), Java check/install prompt, and optional EULA review
 - [ ] **Server Overview & Live Console:** Real-time terminal output, log-level color coding, command input, Start/Stop/Restart/Kill controls, EULA confirmation modal when needed, live RAM/CPU/Disk indicators, and per-server settings (RAM, Java, log retention)
