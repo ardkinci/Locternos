@@ -1,4 +1,5 @@
 import { existsSync } from 'node:fs';
+import cookie from '@fastify/cookie';
 import cors from '@fastify/cors';
 import fastifyStatic from '@fastify/static';
 import websocket from '@fastify/websocket';
@@ -26,6 +27,8 @@ export async function buildApp(config: Config): Promise<FastifyInstance> {
   app.decorate('db', database.db);
   app.addHook('onClose', async () => database.close());
 
+  app.decorateRequest('user', null);
+  await app.register(cookie);
   await app.register(cors, { origin: config.corsOrigins });
   await app.register(websocket);
 
