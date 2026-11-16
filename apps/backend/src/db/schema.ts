@@ -1,11 +1,15 @@
 import { index, integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 import {
+  artifactKindSchema,
+  artifactSourceTypeSchema,
   jvmFlagsProfileSchema,
   logLevelSchema,
   logRetentionPolicySchema,
   serverCoreTypeSchema,
   serverStatusSchema,
   userRoleSchema,
+  type ArtifactKind,
+  type ArtifactSourceType,
   type JvmFlagsProfile,
   type LogLevel,
   type LogRetentionPolicy,
@@ -24,6 +28,11 @@ const logRetentionPolicies = logRetentionPolicySchema.options as [
   ...LogRetentionPolicy[],
 ];
 const logLevels = logLevelSchema.options as [LogLevel, ...LogLevel[]];
+const artifactKinds = artifactKindSchema.options as [ArtifactKind, ...ArtifactKind[]];
+const artifactSourceTypes = artifactSourceTypeSchema.options as [
+  ArtifactSourceType,
+  ...ArtifactSourceType[],
+];
 
 /** Panel accounts. Phase 1 only has the single Admin created on first run. */
 export const users = sqliteTable('users', {
@@ -120,4 +129,27 @@ export const serverLogs = sqliteTable(
     index('server_logs_server_timestamp_idx').on(table.serverId, table.timestamp),
     index('server_logs_run_idx').on(table.runId),
   ],
+);
+
+/**
+ * Installed cores, plugins and mods. Each row records the resolution details
+ * for auditing and future updates (e.g., Modrinth dependency detection).
+ */
+export const artifacts = sqliteTable(
+  'artifacts',
+  {
+    id: text('id').primaryKey(),
+    serverId: text('server_id')
+      .notNull()
+      .references(() => servers.id, { onDelete: 'cascade' }),
+    kind: text('kind', { enum: artifactKinds }).notNull(),
+    filename: text('filename').notNull(),
+    sourceType: text('source_type', { enum: artifactSourceTypes }).notNull(),
+    sourceUrl: text('source_url'),
+    projectId: text('project_id'),
+    versionId: text('version_id'),
+    sha256: text('sha256').notNull(),
+    installedAt: text('installed_at').notNull(),
+  },
+  (table) => [index('artifacts_server_kind_idx').on(table.serverId, table.kind)],
 );
