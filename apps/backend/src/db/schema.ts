@@ -1,4 +1,4 @@
-import { integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
+import { index, integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 import {
   jvmFlagsProfileSchema,
   logRetentionPolicySchema,
@@ -71,3 +71,24 @@ export const servers = sqliteTable('servers', {
   createdAt: text('created_at').notNull(),
   updatedAt: text('updated_at').notNull(),
 });
+
+/**
+ * One process lifetime of a server. `stoppedAt` stays null while the run is
+ * open, which makes closed runs distinguishable without inspecting `exitCode`.
+ */
+export const serverRuns = sqliteTable(
+  'server_runs',
+  {
+    id: text('id').primaryKey(),
+    serverId: text('server_id')
+      .notNull()
+      .references(() => servers.id, { onDelete: 'cascade' }),
+    pid: integer('pid'),
+    startedAt: text('started_at').notNull(),
+    stoppedAt: text('stopped_at'),
+    exitCode: integer('exit_code'),
+    stopReason: text('stop_reason'),
+    peakRamMb: integer('peak_ram_mb'),
+  },
+  (table) => [index('server_runs_server_started_idx').on(table.serverId, table.startedAt)],
+);
