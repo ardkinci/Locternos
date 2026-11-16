@@ -153,3 +153,24 @@ export const artifacts = sqliteTable(
   },
   (table) => [index('artifacts_server_kind_idx').on(table.serverId, table.kind)],
 );
+
+/**
+ * Configuration and operational audit events (server created, config changed,
+ * plugin installed, EULA accepted). `serverId` and `userId` are optional to
+ * support system events.
+ */
+export const auditEvents = sqliteTable(
+  'audit_events',
+  {
+    id: text('id').primaryKey(),
+    serverId: text('server_id').references(() => servers.id, { onDelete: 'cascade' }),
+    userId: text('user_id').references(() => users.id, { onDelete: 'cascade' }),
+    action: text('action').notNull(),
+    details: text('details').notNull(), // JSON stringified
+    createdAt: text('created_at').notNull(),
+  },
+  (table) => [
+    index('audit_events_server_created_idx').on(table.serverId, table.createdAt),
+    index('audit_events_user_idx').on(table.userId),
+  ],
+);
