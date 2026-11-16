@@ -1,48 +1,70 @@
 import { useEffect, useState } from 'react';
-import type { HealthResponse } from '@locternos/shared';
-import { api } from './lib/api';
-import { WsClient } from './lib/ws';
+import type { User } from '@locternos/shared';
+import { Dashboard } from './components/Dashboard';
+import { LoginForm, SetupForm } from './components/AuthForms';
+import { api, ApiError } from './lib/api';
+
+type Phase =
+  | { kind: 'loading' }
+  | { kind: 'error'; message: string }
+  | { kind: 'setup' }
+  | { kind: 'login' }
+  | { kind: 'ready'; user: User };
 
 export function App() {
-  const [health, setHealth] = useState<HealthResponse | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [wsConnected, setWsConnected] = useState(false);
+  const [phase, setPhase] = useState<Phase>({ kind: 'loading' });
 
+  // Decide which screen to show: first-run setup, sign-in, or the dashboard.
   useEffect(() => {
-    api
-      .health()
-      .then(setHealth)
-      .catch((e: unknown) => setError(e instanceof Error ? e.message : String(e)));
+    let active = true;
 
-    const ws = new WsClient();
-    const offStatus = ws.onStatus(setWsConnected);
-    ws.connect();
+    async function bootstrap() {
+      try {
+        const { setupRequired } = await api.setupStatus();
+        if (!active) return;
+        if (setupRequired) {
+          setPhase({ kind: 'setup' });
+          return;
+        }
+        const { user } = await api.me();
+        if (active) setPhase({ kind: 'ready', user });
+      } catch (err) {
+        if (!active) return;
+        if (err instanceof ApiError && err.status === 401) {
+          setPhase({ kind: 'login' });
+        } else {
+          setPhase({ kind: 'error', message: err instanceof Error ? err.message : String(err) });
+        }
+      }
+    }
+
+    void bootstrap();
     return () => {
-      offStatus();
-      ws.close();
+      active = false;
     };
   }, []);
 
-  return (
-    <main className="mx-auto max-w-2xl p-8">
-      <h1 className="text-3xl font-bold">Locternos</h1>
-      <p className="mt-2 text-slate-400">Self-hosted Minecraft server control panel.</p>
-      <dl className="mt-6 space-y-1 text-sm">
-        <div>
-          API:{' '}
-          {health ? (
-            <span className="text-emerald-400">ok (v{health.version})</span>
-          ) : (
-            <span className="text-amber-400">{error ?? 'connecting…'}</span>
-          )}
-        </div>
-        <div>
-          WebSocket:{' '}
-          <span className={wsConnected ? 'text-emerald-400' : 'text-amber-400'}>
-            {wsConnected ? 'connected' : 'disconnected'}
-          </span>
-        </div>
-      </dl>
-    </main>
-  );
+  async function signOut() {
+    try {
+      await api.logout();
+    } finally {
+      // Even if the request failed, the user should not stay on the dashboard.
+      setPhase({ kind: 'login' });
+    }
+  }
+
+  const signedIn = (user: User) => setPhase({ kind: 'ready', user });
+
+  switch (phase.kind) {
+    case 'loading':
+      return <p className="p-8 text-slate-400">Loading…</p>;
+    case 'error':
+      return <p className="p-8 text-rose-400">Could not reach the panel: {phase.message}</p>;
+    case 'setup':
+      return <SetupForm onAuthenticated={signedIn} />;
+    case 'login':
+      return <LoginForm onAuthenticated={signedIn} />;
+    case 'ready':
+      return <Dashboard user={phase.user} onLogout={signOut} />;
+  }
 }

@@ -5,4 +5,5 @@ export * from './log.js';
 export * from './artifact.js';
 export * from './audit.js';
 export * from './user.js';
+export * from './auth.js';
 export * from './api.js';

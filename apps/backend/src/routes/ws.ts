@@ -1,9 +1,12 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { wsClientMessageSchema, type WsServerMessage } from '@locternos/shared';
+import { requireAuth } from '../auth/guard.js';
 import { VERSION } from '../version.js';
 
 export const wsRoutes: FastifyPluginAsync = async (app) => {
-  app.get('/api/ws', { websocket: true }, (socket) => {
+  // The session cookie is checked during the HTTP upgrade request, so
+  // unauthenticated clients never get a WebSocket.
+  app.get('/api/ws', { websocket: true, preHandler: requireAuth }, (socket) => {
     const send = (msg: WsServerMessage) => socket.send(JSON.stringify(msg));
     send({ type: 'hello', version: VERSION });
 
