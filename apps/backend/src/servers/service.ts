@@ -78,7 +78,7 @@ function isPortTakenByOther(db: Db, port: number, serverId: string): boolean {
 }
 
 export function listServers(db: Db): Server[] {
-  const rows = db.select().from(servers).orderBy(asc(servers.createdAt)).all();
+  const rows = db.select().from(servers).orderBy(asc(servers.createdAt), asc(servers.id)).all();
   return rows.map(toServer);
 }
 
