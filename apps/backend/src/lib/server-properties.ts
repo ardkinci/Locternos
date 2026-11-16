@@ -82,7 +82,7 @@ function unescapeSegment(input: string): string {
   return out;
 }
 
-function escapeSegment(input: string): string {
+function escapeSegment(input: string, isKey: boolean): string {
   let out = '';
   for (let index = 0; index < input.length; index += 1) {
     const char = input[index];
@@ -120,7 +120,7 @@ function escapeSegment(input: string): string {
         continue;
       }
     }
-    if (char === ' ' && index === 0) {
+    if (char === ' ' && (isKey || index === 0)) {
       out += '\\ ';
       continue;
     }
@@ -251,8 +251,8 @@ export function serializeServerProperties(parsed: ParsedServerProperties): strin
       if (line.type === 'comment' || line.type === 'blank') {
         return line.raw;
       }
-      const key = escapeSegment(line.key);
-      const value = escapeSegment(line.value);
+      const key = escapeSegment(line.key, true);
+      const value = escapeSegment(line.value, false);
       return `${key}${line.separator}${value}`;
     })
     .join('\n');
