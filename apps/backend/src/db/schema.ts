@@ -58,7 +58,9 @@ export const servers = sqliteTable('servers', {
   javaPath: text('java_path'),
   minRamMb: integer('min_ram_mb').notNull(),
   maxRamMb: integer('max_ram_mb').notNull(),
-  jvmFlagsProfile: text('jvm_flags_profile', { enum: jvmFlagsProfiles }).notNull().default('default'),
+  jvmFlagsProfile: text('jvm_flags_profile', { enum: jvmFlagsProfiles })
+    .notNull()
+    .default('default'),
   customJvmArgs: text('custom_jvm_args').notNull().default(''),
   port: integer('port').notNull(),
   logRetentionPolicy: text('log_retention_policy', { enum: logRetentionPolicies })
