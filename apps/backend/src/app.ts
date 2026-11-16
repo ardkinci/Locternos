@@ -8,6 +8,7 @@ import type { Config } from './config.js';
 import { openDatabase, type Db } from './db/client.js';
 import { runMigrations } from './db/migrate.js';
 import { ensureDataLayout } from './data-dir.js';
+import { authRoutes } from './routes/auth.js';
 import { healthRoutes } from './routes/health.js';
 import { setupRoutes } from './routes/setup.js';
 import { wsRoutes } from './routes/ws.js';
@@ -35,6 +36,7 @@ export async function buildApp(config: Config): Promise<FastifyInstance> {
 
   await app.register(healthRoutes);
   await app.register(setupRoutes);
+  await app.register(authRoutes);
   await app.register(wsRoutes);
 
   // Serve the built frontend (SPA) in production.
