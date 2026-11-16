@@ -9,6 +9,7 @@ import { openDatabase, type Db } from './db/client.js';
 import { runMigrations } from './db/migrate.js';
 import { ensureDataLayout } from './data-dir.js';
 import { healthRoutes } from './routes/health.js';
+import { setupRoutes } from './routes/setup.js';
 import { wsRoutes } from './routes/ws.js';
 
 declare module 'fastify' {
@@ -33,6 +34,7 @@ export async function buildApp(config: Config): Promise<FastifyInstance> {
   await app.register(websocket);
 
   await app.register(healthRoutes);
+  await app.register(setupRoutes);
   await app.register(wsRoutes);
 
   // Serve the built frontend (SPA) in production.
