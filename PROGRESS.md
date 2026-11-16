@@ -93,7 +93,7 @@ A self-hosted, local-first Aternos alternative for creating, configuring, and ma
 
 ### 2.1 Visual `server.properties` Editor
 
-- [ ] Parse and serialize `server.properties` safely while preserving comments/unknown keys
+- [x] Parse and serialize `server.properties` safely while preserving comments/unknown keys
 - [ ] Build schema-driven UI grouped by category (Gameplay, World, Network/Security, Performance) with human-readable descriptions
 - [ ] Support quick toggles (`online-mode` / cracked, `white-list`, `pvp`, `allow-flight`, `gamemode`, `difficulty`, `motd`, `max-players`, `level-seed`)
 - [ ] Warn user when a running server requires restart for property changes to apply and record changes in `audit_events`
