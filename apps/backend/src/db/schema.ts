@@ -12,3 +12,16 @@ export const users = sqliteTable('users', {
   role: text('role', { enum: userRoles }).notNull().default('admin'),
   createdAt: text('created_at').notNull(),
 });
+
+/**
+ * Login sessions. `id` is the SHA-256 of the bearer token: the raw token only
+ * lives in the client's cookie, so a leaked database cannot be replayed.
+ */
+export const sessions = sqliteTable('sessions', {
+  id: text('id').primaryKey(),
+  userId: text('user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  createdAt: text('created_at').notNull(),
+  expiresAt: text('expires_at').notNull(),
+});
