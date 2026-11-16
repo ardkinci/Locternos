@@ -36,8 +36,7 @@ export function appendServerLogs(
 ): number {
   if (entries.length === 0) return 0;
 
-  const rows = entries.map((entry): LogRow => ({
-    id: 0, // autoincrement
+  const rows = entries.map((entry): Omit<LogRow, 'id'> => ({
     runId,
     serverId,
     timestamp: entry.timestamp,
@@ -46,7 +45,7 @@ export function appendServerLogs(
     message: entry.message,
   }));
 
-  db.insert(serverLogs).values(rows).run();
+  db.insert(serverLogs).values(rows as any).run();
   return rows.length;
 }
 
