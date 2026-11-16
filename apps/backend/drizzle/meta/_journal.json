@@ -15,6 +15,13 @@
       "when": 1794858677488,
       "tag": "0001_sessions",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1794861949532,
+      "tag": "0002_servers",
+      "breakpoints": true
     }
   ]
 }
