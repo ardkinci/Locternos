@@ -1,10 +1,7 @@
 import { buildApp } from './app.js';
 import { loadConfig } from './config.js';
-import { ensureDataLayout } from './data-dir.js';
 
 const config = loadConfig();
-await ensureDataLayout(config);
-
 const app = await buildApp(config);
 
 const shutdown = async (signal: string) => {
