@@ -1,0 +1,111 @@
+# Dependencies
+node_modules/
+vendor/
+.pnp/
+.pnp.js
+bower_components/
+jspm_packages/
+
+# Build output
+dist/
+build/
+out/
+target/
+bin/
+obj/
+.next/
+.nuxt/
+.svelte-kit/
+.cache/
+.parcel-cache/
+.turbo/
+.nx/
+coverage/
+*.tsbuildinfo
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+secrets/
+.secret
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+._*
+.DocumentRevisions-V100/
+.fseventsd/
+.Spotlight-V100/
+.TemporaryItems/
+.Trashes/
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+.AppleDB/
+.AppleDesktop
+Network Trash Folder
+Temporary Items/
+.apdisk
+*.icloud
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+# OS / editor
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.tox/
+.coverage
+htmlcov/
+
+# Rust / Go
+/target/
+*.rs.bk
+/go/pkg/
+
+# Java / Kotlin
+.gradle/
+*.class
+*.jar
+*.war
+
+# Misc
+.tmp/
+temp/
+tmp/
+*.local
+*.orig
+*.rej

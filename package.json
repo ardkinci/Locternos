@@ -1,0 +1,17 @@
+{
+  "name": "locternos",
+  "version": "1.0.0",
+  "description": "Aternos alternative, self-hosted control panel for managing local Minecraft servers effortlessly.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "release": "commit-and-tag-version"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "commit-and-tag-version": "^13.3.0"
+  }
+}

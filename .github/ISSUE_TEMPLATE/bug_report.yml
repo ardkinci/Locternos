@@ -1,0 +1,29 @@
+name: Bug Report
+description: Report a bug in Locternos
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: Briefly describe the bug and what you expected instead.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. 
+        2. 
+    validations:
+      required: false
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: Browser, OS, and Locternos version (if applicable).
+      placeholder: e.g. Chrome 132, macOS, v1.1.0
+    validations:
+      required: false
