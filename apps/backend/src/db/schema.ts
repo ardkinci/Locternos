@@ -1,11 +1,13 @@
 import { index, integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 import {
   jvmFlagsProfileSchema,
+  logLevelSchema,
   logRetentionPolicySchema,
   serverCoreTypeSchema,
   serverStatusSchema,
   userRoleSchema,
   type JvmFlagsProfile,
+  type LogLevel,
   type LogRetentionPolicy,
   type ServerCoreType,
   type ServerStatus,
@@ -21,6 +23,7 @@ const logRetentionPolicies = logRetentionPolicySchema.options as [
   LogRetentionPolicy,
   ...LogRetentionPolicy[],
 ];
+const logLevels = logLevelSchema.options as [LogLevel, ...LogLevel[]];
 
 /** Panel accounts. Phase 1 only has the single Admin created on first run. */
 export const users = sqliteTable('users', {
@@ -91,4 +94,30 @@ export const serverRuns = sqliteTable(
     peakRamMb: integer('peak_ram_mb'),
   },
   (table) => [index('server_runs_server_started_idx').on(table.serverId, table.startedAt)],
+);
+
+/**
+ * Parsed console output. The `server_logs_fts` FTS5 virtual table mirrors
+ * `message` through triggers created in the migration, so keyword search stays
+ * fast without a second write path.
+ */
+export const serverLogs = sqliteTable(
+  'server_logs',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    runId: text('run_id')
+      .notNull()
+      .references(() => serverRuns.id, { onDelete: 'cascade' }),
+    serverId: text('server_id')
+      .notNull()
+      .references(() => servers.id, { onDelete: 'cascade' }),
+    timestamp: text('timestamp').notNull(),
+    level: text('level', { enum: logLevels }).notNull(),
+    thread: text('thread'),
+    message: text('message').notNull(),
+  },
+  (table) => [
+    index('server_logs_server_timestamp_idx').on(table.serverId, table.timestamp),
+    index('server_logs_run_idx').on(table.runId),
+  ],
 );
