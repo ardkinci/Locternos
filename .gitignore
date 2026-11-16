@@ -109,3 +109,6 @@ tmp/
 *.local
 *.orig
 *.rej
+
+# Locternos runtime data (db, servers, runtimes, backups)
+/data/
