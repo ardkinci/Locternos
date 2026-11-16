@@ -33,9 +33,9 @@ A self-hosted, local-first Aternos alternative for creating, configuring, and ma
 
 ### 1.2 Database Layer & Authentication (SQLite + Drizzle + FTS5)
 
-- [ ] Set up `better-sqlite3` connection (WAL mode enabled) and Drizzle ORM migrations
-- [ ] Implement `users` table (id, email, password_hash, role `admin`, created_at) with secure password hashing (Argon2/scrypt)
-- [ ] Implement first-run setup flow (prompt to create Admin account with email + password locally, no email verification codes) and session/JWT auth middleware for REST + WebSocket
+- [x] Set up `better-sqlite3` connection (WAL mode enabled) and Drizzle ORM migrations
+- [x] Implement `users` table (id, email, password_hash, role `admin`, created_at) with secure password hashing (Argon2/scrypt)
+- [x] Implement first-run setup flow (prompt to create Admin account with email + password locally, no email verification codes) and session/JWT auth middleware for REST + WebSocket
 - [ ] Implement `servers` table (id, name, slug, core type, MC version, entrypoint `.jar`, Java path, min/max RAM MB, JVM flags profile, custom JVM args, port, log_retention_policy `none|24h|7d|30d|90d|365d|forever`, eula_accepted_at, status, created/updated timestamps)
 - [ ] Implement `server_runs` table (id, server_id, pid, started_at, stopped_at, exit_code, stop_reason, peak_ram_mb)
 - [ ] Implement `server_logs` table + SQLite `FTS5` virtual table and sync triggers (run_id, server_id, timestamp, level, thread, message)
