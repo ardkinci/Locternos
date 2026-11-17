@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { artifactKindSchema, artifactSourceTypeSchema } from './enums.js';
+import { serverSchema } from './server.js';
 
 export const artifactSchema = z.object({
   id: z.string(),
@@ -57,3 +58,9 @@ export const installArtifactOutcomeSchema = z.discriminatedUnion('status', [
   }),
 ]);
 export type InstallArtifactOutcome = z.infer<typeof installArtifactOutcomeSchema>;
+
+export const installCoreResponseSchema = z.object({
+  server: serverSchema,
+  artifact: artifactSchema,
+});
+export type InstallCoreResponse = z.infer<typeof installCoreResponseSchema>;

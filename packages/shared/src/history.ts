@@ -25,4 +25,11 @@ export const logSearchQuerySchema = z.object({
   level: z.enum(['INFO', 'WARN', 'ERROR', 'FATAL']).optional(),
   limit: z.coerce.number().int().min(1).max(5000).default(500),
 });
-export type LogSearchQuery = z.infer<typeof logSearchQuerySchema>;
+
+/** Search parameters as sent by the panel. */
+export interface LogSearchQuery {
+  query?: string;
+  runId?: string;
+  level?: 'INFO' | 'WARN' | 'ERROR' | 'FATAL';
+  limit?: number;
+}
