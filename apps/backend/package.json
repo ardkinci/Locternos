@@ -13,6 +13,7 @@
   "dependencies": {
     "@fastify/cookie": "^11.1.5",
     "@fastify/cors": "^11.4.3",
+    "@fastify/multipart": "^10.1.9",
     "@fastify/static": "^10.1.11",
     "@fastify/websocket": "^11.3.7",
     "@locternos/shared": "*",
