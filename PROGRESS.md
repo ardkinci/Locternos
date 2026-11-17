@@ -46,11 +46,11 @@ A self-hosted, local-first Aternos alternative for creating, configuring, and ma
 
 ### 1.3 Java Runtime Manager
 
-- [ ] Scan system paths (`PATH`, `JAVA_HOME`, common OS Java directories) and extract Java major versions (`java -version`)
-- [ ] Implement Adoptium (Temurin) API client to list and download JDK/JRE runtimes into `data/runtimes/`
-- [ ] Resolve required Java version dynamically from Mojang version manifest (`javaVersion.majorVersion`)
-- [ ] Prompt the user for confirmation when the required Java version is missing locally (`"Java X is required for this server. Download and install?"`) before downloading
-- [ ] Allow manual Java runtime override per server (especially for custom `.jar` servers)
+- [x] Scan system paths (`PATH`, `JAVA_HOME`, common OS Java directories) and extract Java major versions (`java -version`)
+- [x] Implement Adoptium (Temurin) API client to list and download JDK/JRE runtimes into `data/runtimes/`
+- [x] Resolve required Java version dynamically from Mojang version manifest (`javaVersion.majorVersion`)
+- [x] Prompt the user for confirmation when the required Java version is missing locally (`"Java X is required for this server. Download and install?"`) before downloading
+- [x] Allow manual Java runtime override per server (especially for custom `.jar` servers)
 
 ### 1.4 Server Core Providers & Unified Artifact Resolver
 
