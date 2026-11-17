@@ -13,8 +13,19 @@ export const artifactSchema = z.object({
   versionId: z.string().nullable(),
   sha256: z.string().length(64),
   installedAt: z.string().datetime(),
+  enabled: z.boolean(),
 });
 export type Artifact = z.infer<typeof artifactSchema>;
+
+export const setArtifactEnabledInputSchema = z.object({
+  enabled: z.boolean(),
+});
+export type SetArtifactEnabledInput = z.infer<typeof setArtifactEnabledInputSchema>;
+
+export const setArtifactEnabledResponseSchema = z.object({
+  artifact: artifactSchema,
+});
+export type SetArtifactEnabledResponse = z.infer<typeof setArtifactEnabledResponseSchema>;
 
 export const artifactListResponseSchema = z.object({
   artifacts: z.array(artifactSchema),
