@@ -1,0 +1,28 @@
+import { z } from 'zod';
+import { auditEventSchema } from './audit.js';
+import { serverLogSchema } from './log.js';
+import { serverRunSchema } from './run.js';
+
+export const serverRunListResponseSchema = z.object({
+  runs: z.array(serverRunSchema),
+});
+export type ServerRunListResponse = z.infer<typeof serverRunListResponseSchema>;
+
+export const serverLogListResponseSchema = z.object({
+  logs: z.array(serverLogSchema),
+});
+export type ServerLogListResponse = z.infer<typeof serverLogListResponseSchema>;
+
+export const auditEventListResponseSchema = z.object({
+  events: z.array(auditEventSchema),
+});
+export type AuditEventListResponse = z.infer<typeof auditEventListResponseSchema>;
+
+/** Filters accepted by the historical log search endpoint. */
+export const logSearchQuerySchema = z.object({
+  query: z.string().trim().max(200).optional(),
+  runId: z.string().min(1).optional(),
+  level: z.enum(['INFO', 'WARN', 'ERROR', 'FATAL']).optional(),
+  limit: z.coerce.number().int().min(1).max(5000).default(500),
+});
+export type LogSearchQuery = z.infer<typeof logSearchQuerySchema>;

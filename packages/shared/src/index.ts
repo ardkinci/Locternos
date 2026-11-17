@@ -2,6 +2,7 @@ export * from './enums.js';
 export * from './server.js';
 export * from './run.js';
 export * from './runtime.js';
+export * from './history.js';
 export * from './log.js';
 export * from './artifact.js';
 export * from './audit.js';
