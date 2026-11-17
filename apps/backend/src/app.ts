@@ -1,6 +1,7 @@
 import { existsSync } from 'node:fs';
 import cookie from '@fastify/cookie';
 import cors from '@fastify/cors';
+import multipart from '@fastify/multipart';
 import fastifyStatic from '@fastify/static';
 import websocket from '@fastify/websocket';
 import Fastify, { type FastifyInstance } from 'fastify';
@@ -10,6 +11,8 @@ import { runMigrations } from './db/migrate.js';
 import { ensureDataLayout } from './data-dir.js';
 import { createJavaRuntimeService, type JavaRuntimeService } from './java/runtime-service.js';
 import { recoverOrphanedRuns } from './runs/service.js';
+import { createArtifactInstallService, type ArtifactInstallService } from './artifacts/install-service.js';
+import { artifactRoutes } from './routes/artifacts.js';
 import { authRoutes } from './routes/auth.js';
 import { healthRoutes } from './routes/health.js';
 import { javaRoutes } from './routes/java.js';
@@ -22,12 +25,15 @@ declare module 'fastify' {
     db: Db;
     config: Config;
     javaRuntimeService: JavaRuntimeService;
+    artifactInstallService: ArtifactInstallService;
   }
 }
 
 export interface BuildAppOptions {
   /** Test hook to replace filesystem and network bound Java discovery. */
   javaRuntimeService?: JavaRuntimeService;
+  /** Test hook to replace network bound artifact installs. */
+  artifactInstallService?: ArtifactInstallService;
 }
 
 export async function buildApp(
@@ -54,18 +60,24 @@ export async function buildApp(
     options.javaRuntimeService ??
       createJavaRuntimeService({ runtimesDir: config.paths.runtimes }),
   );
+  app.decorate(
+    'artifactInstallService',
+    options.artifactInstallService ?? createArtifactInstallService({ db: database.db, config }),
+  );
   app.addHook('onClose', async () => database.close());
 
   app.decorateRequest('user', null);
   await app.register(cookie);
   await app.register(cors, { origin: config.corsOrigins });
   await app.register(websocket);
+  await app.register(multipart, { limits: { fileSize: 512 * 1024 * 1024, files: 1 } });
 
   await app.register(healthRoutes);
   await app.register(setupRoutes);
   await app.register(authRoutes);
   await app.register(serverRoutes);
   await app.register(javaRoutes);
+  await app.register(artifactRoutes);
   await app.register(wsRoutes);
 
   // Serve the built frontend (SPA) in production.

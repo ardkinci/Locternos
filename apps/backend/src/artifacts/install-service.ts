@@ -481,7 +481,10 @@ export function createArtifactInstallService(
     installCore,
     installArtifact,
     installUpload,
-    list: (serverId) => listArtifacts(db, serverId),
+    list: (serverId) => {
+      requireServer(serverId);
+      return listArtifacts(db, serverId);
+    },
     remove,
   };
 }
