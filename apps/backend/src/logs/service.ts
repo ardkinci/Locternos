@@ -1,5 +1,5 @@
 import { desc, eq } from 'drizzle-orm';
-import type { ServerLog } from '@locternos/shared';
+import type { LogLevel, ServerLog } from '@locternos/shared';
 import type { Db } from '../db/client.js';
 import { serverLogs } from '../db/schema.js';
 
@@ -71,6 +71,35 @@ export function listServerLogsByRun(db: Db, runId: string, limit: number = 10000
     .limit(limit)
     .all();
   return rows.map(toServerLog);
+}
+
+export interface LogQueryOptions {
+  /** Free-text search; when omitted the most recent lines are returned. */
+  query?: string;
+  runId?: string;
+  level?: LogLevel;
+  limit?: number;
+}
+
+/**
+ * Combines the recent-log listing with the FTS5 keyword search so the panel
+ * can use one endpoint for both "latest output" and "search history".
+ */
+export function queryServerLogs(
+  db: Db,
+  serverId: string,
+  options: LogQueryOptions = {},
+): ServerLog[] {
+  const { query, runId, level, limit = 500 } = options;
+
+  const logs = query?.trim()
+    ? searchServerLogs(db, query.trim(), { serverId, runId, limit: limit * 4 })
+    : listServerLogs(db, serverId, limit * 4);
+
+  return logs
+    .filter((log) => (runId ? log.runId === runId : true))
+    .filter((log) => (level ? log.level === level : true))
+    .slice(0, limit);
 }
 
 /**
