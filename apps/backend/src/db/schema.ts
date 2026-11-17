@@ -150,6 +150,7 @@ export const artifacts = sqliteTable(
     versionId: text('version_id'),
     sha256: text('sha256').notNull(),
     installedAt: text('installed_at').notNull(),
+    enabled: integer('enabled', { mode: 'boolean' }).notNull().default(true),
   },
   (table) => [index('artifacts_server_kind_idx').on(table.serverId, table.kind)],
 );
