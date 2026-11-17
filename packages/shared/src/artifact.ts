@@ -75,3 +75,19 @@ export const installCoreResponseSchema = z.object({
   artifact: artifactSchema,
 });
 export type InstallCoreResponse = z.infer<typeof installCoreResponseSchema>;
+
+/** A required dependency detected for a Modrinth project. */
+export const artifactDependencySchema = z.object({
+  projectId: z.string(),
+  versionId: z.string(),
+  filename: z.string(),
+  title: z.string(),
+});
+export type ArtifactDependency = z.infer<typeof artifactDependencySchema>;
+
+export const artifactPreviewResponseSchema = z.object({
+  project: modrinthProjectInfoSchema,
+  versionId: z.string().nullable(),
+  dependencies: z.array(artifactDependencySchema),
+});
+export type ArtifactPreview = z.infer<typeof artifactPreviewResponseSchema>;
