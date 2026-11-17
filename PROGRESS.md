@@ -78,11 +78,11 @@ A self-hosted, local-first Aternos alternative for creating, configuring, and ma
 ### 1.6 Basic Web Interface (MVP)
 
 - [x] **First-Run Setup & Login:** Create Admin account on initial launch (email + password); login gate for subsequent visits
-- [ ] **Dashboard / Server List:** View all local servers, status badges, MC version/core, RAM allocation, live metrics, and quick Start/Stop actions
-- [ ] **Create Server Wizard:** Select Vanilla / Paper / Fabric / Custom `.jar` (upload or direct URL), set name, port, RAM slider, log retention policy (`none` to `forever`), Java check/install prompt, and optional EULA review
-- [ ] **Server Overview & Live Console:** Real-time terminal output, log-level color coding, command input, Start/Stop/Restart/Kill controls, EULA confirmation modal when needed, live RAM/CPU/Disk indicators, and per-server settings (RAM, Java, log retention)
-- [ ] **Plugins / Mods Tab:** Install via Modrinth page URL (showing detected `required` dependencies before/during install), direct `.jar` download URL, or local `.jar` file upload; list/enable/disable/delete installed artifacts
-- [ ] **History & Logs Tab:**
+- [x] **Dashboard / Server List:** View all local servers, status badges, MC version/core, RAM allocation, live metrics, and quick Start/Stop actions
+- [x] **Create Server Wizard:** Select Vanilla / Paper / Fabric / Custom `.jar` (upload or direct URL), set name, port, RAM slider, log retention policy (`none` to `forever`), Java check/install prompt, and optional EULA review
+- [x] **Server Overview & Live Console:** Real-time terminal output, log-level color coding, command input, Start/Stop/Restart/Kill controls, EULA confirmation modal when needed, live RAM/CPU/Disk indicators, and per-server settings (RAM, Java, log retention)
+- [x] **Plugins / Mods Tab:** Install via Modrinth page URL (showing detected `required` dependencies before/during install), direct `.jar` download URL, or local `.jar` file upload; list/enable/disable/delete installed artifacts
+- [x] **History & Logs Tab:**
   - View past `server_runs` (start/stop times, duration, exit code, crash indicator, peak RAM)
   - Inspect & search historical logs (`FTS5` keyword search, filter by run ID and log level `INFO|WARN|ERROR|FATAL`)
   - Download raw `logs/*.log.gz` files and inspect `audit_events` timeline
