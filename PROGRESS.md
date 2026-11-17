@@ -54,14 +54,14 @@ A self-hosted, local-first Aternos alternative for creating, configuring, and ma
 
 ### 1.4 Server Core Providers & Unified Artifact Resolver
 
-- [ ] Implement **Vanilla** provider (Mojang Piston API: version list + `server.jar` download + SHA-1 verification)
-- [ ] Implement **Paper** provider (PaperMC API: versions, latest build lookup, download + SHA-256 verification)
-- [ ] Implement **Fabric** provider (Fabric Meta API: game versions, loader versions, installer/server jar resolution)
-- [ ] Implement **Direct URL Installer** (download from direct `.jar` URLs like `fill-data.papermc.io/...` or `cdn.modrinth.com/...`, derive safe filename from URL/`Content-Disposition`, verify ZIP/JAR magic bytes `PK\x03\x04`, compute SHA-256)
-- [ ] Implement **Local `.jar` Upload** endpoint (multipart upload, JAR validation, SHA-256 hashing, destination selection for core vs `plugins/` vs `mods/`)
-- [ ] Implement **Modrinth Page URL Resolver** (parse `modrinth.com/{plugin|mod|datapack}/<slug>` and optional `/version/<id>`, query Modrinth API v2, auto-match server MC version & loader, return selectable fallback versions if no exact match)
-- [ ] Resolve and report `required` Modrinth dependencies to the user (with version/project info) and install them automatically alongside the requested mod/plugin
-- [ ] Record all installed cores, plugins, and mods (including installed dependencies) in `artifacts` and log `audit_events`
+- [x] Implement **Vanilla** provider (Mojang Piston API: version list + `server.jar` download + SHA-1 verification)
+- [x] Implement **Paper** provider (PaperMC API: versions, latest build lookup, download + SHA-256 verification)
+- [x] Implement **Fabric** provider (Fabric Meta API: game versions, loader versions, installer/server jar resolution)
+- [x] Implement **Direct URL Installer** (download from direct `.jar` URLs like `fill-data.papermc.io/...` or `cdn.modrinth.com/...`, derive safe filename from URL/`Content-Disposition`, verify ZIP/JAR magic bytes `PK\x03\x04`, compute SHA-256)
+- [x] Implement **Local `.jar` Upload** endpoint (multipart upload, JAR validation, SHA-256 hashing, destination selection for core vs `plugins/` vs `mods/`)
+- [x] Implement **Modrinth Page URL Resolver** (parse `modrinth.com/{plugin|mod|datapack}/<slug>` and optional `/version/<id>`, query Modrinth API v2, auto-match server MC version & loader, return selectable fallback versions if no exact match)
+- [x] Resolve and report `required` Modrinth dependencies to the user (with version/project info) and install them automatically alongside the requested mod/plugin
+- [x] Record all installed cores, plugins, and mods (including installed dependencies) in `artifacts` and log `audit_events`
 
 ### 1.5 Process Lifecycle, EULA, Console & Resource Control
 
