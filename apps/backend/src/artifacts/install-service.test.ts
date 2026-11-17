@@ -60,8 +60,7 @@ function modrinthRoutes(): Record<string, Handler> {
     url: 'https://cdn.modrinth.com/essentialsx.jar',
     filename: 'essentialsx.jar',
     size: JAR.length,
-    sha1: 'a'.repeat(40),
-    sha512: 'b'.repeat(128),
+    hashes: { sha1: 'a'.repeat(40), sha512: 'b'.repeat(128) },
     primary: true,
   };
   const depFile = { ...versionFile, url: 'https://cdn.modrinth.com/lib.jar', filename: 'lib.jar' };
@@ -258,8 +257,7 @@ describe('artifact install service', () => {
           url: 'https://cdn.modrinth.com/old.jar',
           filename: 'old.jar',
           size: JAR.length,
-          sha1: 'c'.repeat(40),
-          sha512: 'd'.repeat(128),
+          hashes: { sha1: 'c'.repeat(40), sha512: 'd'.repeat(128) },
           primary: true,
         },
       ],

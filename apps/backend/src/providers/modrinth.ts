@@ -148,12 +148,14 @@ function parseProject(raw: unknown): ModrinthProject | null {
 
 function parseFile(raw: unknown): ModrinthFile | null {
   if (!isObject(raw)) return null;
+  const hashes = raw.hashes;
   if (
     typeof raw.url !== 'string' ||
     typeof raw.filename !== 'string' ||
     typeof raw.size !== 'number' ||
-    typeof raw.sha1 !== 'string' ||
-    typeof raw.sha512 !== 'string'
+    !isObject(hashes) ||
+    typeof hashes.sha1 !== 'string' ||
+    typeof hashes.sha512 !== 'string'
   ) {
     return null;
   }
@@ -161,8 +163,8 @@ function parseFile(raw: unknown): ModrinthFile | null {
     url: raw.url,
     filename: raw.filename,
     size: raw.size,
-    sha1: raw.sha1,
-    sha512: raw.sha512,
+    sha1: hashes.sha1,
+    sha512: hashes.sha512,
   };
 }
 
