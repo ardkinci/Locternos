@@ -23,7 +23,7 @@ export type LogRetentionPolicy = z.infer<typeof logRetentionPolicySchema>;
 export const logLevelSchema = z.enum(['INFO', 'WARN', 'ERROR', 'FATAL']);
 export type LogLevel = z.infer<typeof logLevelSchema>;
 
-export const artifactKindSchema = z.enum(['core', 'plugin', 'mod']);
+export const artifactKindSchema = z.enum(['core', 'plugin', 'mod', 'datapack']);
 export type ArtifactKind = z.infer<typeof artifactKindSchema>;
 
 export const artifactSourceTypeSchema = z.enum([
