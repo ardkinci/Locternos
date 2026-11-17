@@ -1,18 +1,27 @@
+import path from 'node:path';
 import type { FastifyPluginAsync } from 'fastify';
 import {
   logSearchQuerySchema,
   type AuditEventListResponse,
+  type LogFileListResponse,
   type ServerLogListResponse,
   type ServerRunListResponse,
 } from '@locternos/shared';
 import { requireAuth } from '../auth/guard.js';
 import { listAuditEvents } from '../audit/service.js';
 import { queryServerLogs } from '../logs/service.js';
+import { listLogFiles, openLogFile, resolveLogFile } from '../logs/files.js';
 import { listServerRuns } from '../runs/service.js';
 import { getServer } from '../servers/service.js';
+import { serverDirectory } from '../servers/workspace.js';
 
 interface ServerParams {
   id: string;
+}
+
+interface LogFileParams {
+  id: string;
+  name: string;
 }
 
 interface RunsQuery {
@@ -49,6 +58,39 @@ export const historyRoutes: FastifyPluginAsync = async (app) => {
     const logs = queryServerLogs(app.db, id, parsed.data);
     return { logs } satisfies ServerLogListResponse;
   });
+
+  app.get('/api/servers/:id/logs/files', { preHandler: requireAuth }, async (request, reply) => {
+    const { id } = request.params as ServerParams;
+    const server = getServer(app.db, id);
+    if (!server) {
+      return reply.code(404).send({ error: 'Server not found' });
+    }
+
+    const files = await listLogFiles(serverDirectory(app.config, server));
+    return { files } satisfies LogFileListResponse;
+  });
+
+  app.get(
+    '/api/servers/:id/logs/files/:name',
+    { preHandler: requireAuth },
+    async (request, reply) => {
+      const { id, name } = request.params as LogFileParams;
+      const server = getServer(app.db, id);
+      if (!server) {
+        return reply.code(404).send({ error: 'Server not found' });
+      }
+
+      const filePath = resolveLogFile(serverDirectory(app.config, server), name);
+      if (!filePath) {
+        return reply.code(400).send({ error: 'Invalid log file name' });
+      }
+
+      return reply
+        .header('Content-Disposition', `attachment; filename="${path.basename(filePath)}"`)
+        .type('application/octet-stream')
+        .send(openLogFile(filePath));
+    },
+  );
 
   app.get('/api/servers/:id/audit', { preHandler: requireAuth }, async (request, reply) => {
     const { id } = request.params as ServerParams;
