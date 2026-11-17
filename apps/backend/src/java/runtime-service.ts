@@ -15,7 +15,7 @@ import {
   type ResolveAdoptiumRuntimeOptions,
 } from './adoptium.js';
 import { MojangVersionClient, type MojangJavaRequirement } from './mojang.js';
-import { scanSystemJavaRuntimes } from './system-scan.js';
+import { scanSystemJavaRuntimes, probeJavaRuntime } from './system-scan.js';
 
 const execFileAsync = promisify(execFile);
 const METADATA_FILE = 'runtime.json';
@@ -50,6 +50,7 @@ export interface JavaRuntimeServiceOptions {
   runtimesDir: string;
   systemCacheTtlMs?: number;
   scanSystem?: () => Promise<JavaRuntime[]>;
+  probeJava?: typeof probeJavaRuntime;
   resolveAdoptium?: typeof resolveAdoptiumRuntime;
   downloadArchive?: typeof downloadRuntimeArchive;
   extractArchive?: (archivePath: string, destination: string) => Promise<void>;
@@ -70,6 +71,7 @@ export interface JavaRuntimeService {
   listManaged(): Promise<JavaRuntime[]>;
   install(input: InstallJavaRuntimeInput): Promise<InstallRuntimeResult>;
   remove(id: string): Promise<boolean>;
+  probe(javaPath: string): Promise<JavaRuntime | null>;
   requirement(mcVersion: string): Promise<JavaVersionRequirement>;
 }
 
@@ -216,6 +218,7 @@ async function readManagedRuntime(dir: string): Promise<JavaRuntime | null> {
 export function createJavaRuntimeService(options: JavaRuntimeServiceOptions): JavaRuntimeService {
   const runtimesDir = options.runtimesDir;
   const scanSystem = options.scanSystem ?? (() => scanSystemJavaRuntimes());
+  const probeJava = options.probeJava ?? probeJavaRuntime;
   const resolveAdoptium = options.resolveAdoptium ?? resolveAdoptiumRuntime;
   const downloadArchive = options.downloadArchive ?? downloadRuntimeArchive;
   const extractArchive = options.extractArchive ?? defaultExtractArchive;
@@ -367,6 +370,7 @@ export function createJavaRuntimeService(options: JavaRuntimeServiceOptions): Ja
     listManaged,
     install,
     remove,
+    probe: probeJava,
     requirement,
   };
 }

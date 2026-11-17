@@ -73,6 +73,9 @@ function fakeService(options: FakeOptions = {}): FakeService {
       removeCalls.push(id);
       return options.removeResult ?? true;
     },
+    async probe(javaPath) {
+      return javaPath === RUNTIME.path ? RUNTIME : null;
+    },
     async requirement(mcVersion) {
       return (
         options.requirement ?? {
@@ -134,6 +137,7 @@ describe('java runtime API', () => {
   it('requires authentication for every java route', async () => {
     const routes = [
       { method: 'GET' as const, url: '/api/java/runtimes' },
+      { method: 'GET' as const, url: '/api/java/runtimes/probe?path=/opt/java/bin/java' },
       { method: 'GET' as const, url: '/api/java/requirement?mcVersion=1.21.4' },
       { method: 'POST' as const, url: '/api/java/runtimes/install' },
       { method: 'DELETE' as const, url: '/api/java/runtimes/temurin-21-jdk' },
@@ -182,8 +186,31 @@ describe('java runtime API', () => {
     });
   });
 
-  it('rejects an invalid install payload', async () => {
-    const res = await ctx.app.inject({
+  it('validates a manual java path override', async () => {
+    const found = await ctx.app.inject({
+      method: 'GET',
+      url: `/api/java/runtimes/probe?path=${encodeURIComponent(RUNTIME.path)}`,
+      headers: { cookie: ctx.cookie },
+    });
+    assert.equal(found.statusCode, 200);
+    assert.deepEqual(found.json(), { runtime: RUNTIME });
+
+    const missing = await ctx.app.inject({
+      method: 'GET',
+      url: '/api/java/runtimes/probe?path=/does/not/exist/java',
+      headers: { cookie: ctx.cookie },
+    });
+    assert.equal(missing.statusCode, 404);
+
+    const empty = await ctx.app.inject({
+      method: 'GET',
+      url: '/api/java/runtimes/probe',
+      headers: { cookie: ctx.cookie },
+    });
+    assert.equal(empty.statusCode, 400);
+  });
+
+  it('rejects an invalid install payload', async () => {    const res = await ctx.app.inject({
       method: 'POST',
       url: '/api/java/runtimes/install',
       headers: { cookie: ctx.cookie },

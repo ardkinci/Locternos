@@ -162,6 +162,36 @@ export async function collectSystemJavaCandidates(
 }
 
 /**
+ * Validates a manually entered Java executable path and turns it into a
+ * runtime description. Used for the per-server Java override, which may point
+ * outside the directories the scanner walks.
+ */
+export async function probeJavaRuntime(
+  javaPath: string,
+  options: Pick<SystemJavaScanOptions, 'runJava' | 'fileExists'> = {},
+): Promise<JavaRuntime | null> {
+  if (!javaPath || !path.isAbsolute(javaPath)) return null;
+
+  const fileExists = options.fileExists ?? defaultFileExists;
+  const runJava = options.runJava ?? defaultRunJava;
+  if (!(await fileExists(javaPath))) return null;
+
+  const parsed = parseJavaVersion(await runJava(javaPath));
+  if (!parsed) return null;
+
+  return {
+    id: systemRuntimeId(javaPath),
+    path: path.normalize(javaPath),
+    vendor: parsed.vendor,
+    version: parsed.version,
+    majorVersion: parsed.majorVersion,
+    source: 'system',
+    imageType: null,
+    installedAt: null,
+  };
+}
+
+/**
  * Discovers locally installed Java runtimes. Unreadable or malformed
  * installations are skipped instead of failing the whole scan.
  */

@@ -5,6 +5,7 @@ import {
   collectSystemJavaCandidates,
   commonJavaHomeRoots,
   explicitJavaCandidates,
+  probeJavaRuntime,
   scanSystemJavaRuntimes,
   systemRuntimeId,
 } from './system-scan.js';
@@ -89,5 +90,34 @@ describe('system java discovery', () => {
     });
 
     assert.deepEqual(runtimes, []);
+  });
+
+  it('probes a manual java override path', async () => {
+    const runtime = await probeJavaRuntime('/opt/custom/bin/java', {
+      fileExists: async () => true,
+      runJava: async () => 'openjdk version "21.0.5" 2024-10-15 LTS',
+    });
+
+    assert.equal(runtime?.path, path.normalize('/opt/custom/bin/java'));
+    assert.equal(runtime?.majorVersion, 21);
+    assert.equal(runtime?.id, systemRuntimeId('/opt/custom/bin/java'));
+  });
+
+  it('rejects non-absolute, missing or unparseable overrides', async () => {
+    assert.equal(await probeJavaRuntime('bin/java', { fileExists: async () => true }), null);
+    assert.equal(
+      await probeJavaRuntime('/missing/java', {
+        fileExists: async () => false,
+        runJava: async () => 'openjdk version "21.0.5"',
+      }),
+      null,
+    );
+    assert.equal(
+      await probeJavaRuntime('/opt/java', {
+        fileExists: async () => true,
+        runJava: async () => 'not java',
+      }),
+      null,
+    );
   });
 });

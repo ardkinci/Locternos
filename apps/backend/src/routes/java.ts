@@ -3,6 +3,7 @@ import {
   installJavaRuntimeInputSchema,
   type InstallJavaRuntimeResponse,
   type JavaRuntimeListResponse,
+  type JavaRuntimeResponse,
   type JavaVersionRequirement,
 } from '@locternos/shared';
 import { recordAuditEvent } from '../audit/service.js';
@@ -23,6 +24,10 @@ interface RequirementQuery {
   mcVersion?: string;
 }
 
+interface ProbeQuery {
+  path?: string;
+}
+
 export const javaRoutes: FastifyPluginAsync = async (app) => {
   app.get('/api/java/runtimes', { preHandler: requireAuth }, async (request) => {
     const { refresh } = request.query as RuntimesQuery;
@@ -30,8 +35,20 @@ export const javaRoutes: FastifyPluginAsync = async (app) => {
     return { runtimes } satisfies JavaRuntimeListResponse;
   });
 
-  app.get('/api/java/requirement', { preHandler: requireAuth }, async (request, reply) => {
-    const mcVersion = (request.query as RequirementQuery).mcVersion?.trim();
+  app.get('/api/java/runtimes/probe', { preHandler: requireAuth }, async (request, reply) => {
+    const javaPath = (request.query as ProbeQuery).path?.trim();
+    if (!javaPath) {
+      return reply.code(400).send({ error: 'path query parameter is required' });
+    }
+
+    const runtime = await app.javaRuntimeService.probe(javaPath);
+    if (!runtime) {
+      return reply.code(404).send({ error: 'No Java runtime found at the given path' });
+    }
+    return { runtime } satisfies JavaRuntimeResponse;
+  });
+
+  app.get('/api/java/requirement', { preHandler: requireAuth }, async (request, reply) => {    const mcVersion = (request.query as RequirementQuery).mcVersion?.trim();
     if (!mcVersion) {
       return reply.code(400).send({ error: 'mcVersion query parameter is required' });
     }
