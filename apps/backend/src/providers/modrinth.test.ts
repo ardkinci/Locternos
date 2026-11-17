@@ -31,8 +31,7 @@ function file(name: string) {
     url: `https://cdn.modrinth.com/${name}`,
     filename: name,
     size: 1234,
-    sha1: 'a'.repeat(40),
-    sha512: 'b'.repeat(128),
+    hashes: { sha1: 'a'.repeat(40), sha512: 'b'.repeat(128) },
     primary: true,
   };
 }
@@ -172,6 +171,8 @@ describe('modrinth resolver', () => {
     assert.equal(resolution.exactMatch, true);
     assert.equal(resolution.version?.id, 'V1');
     assert.equal(resolution.version?.primaryFile.filename, 'lithium-1.0.jar');
+    assert.equal(resolution.version?.primaryFile.sha1, 'a'.repeat(40));
+    assert.equal(resolution.version?.primaryFile.sha512, 'b'.repeat(128));
     assert.deepEqual(resolution.fallbackVersions, []);
   });
 
