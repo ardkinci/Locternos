@@ -33,3 +33,16 @@ export interface LogSearchQuery {
   level?: 'INFO' | 'WARN' | 'ERROR' | 'FATAL';
   limit?: number;
 }
+
+/** A raw log file stored in the server log directory. */
+export const logFileSchema = z.object({
+  name: z.string(),
+  sizeBytes: z.number().int().nonnegative(),
+  modifiedAt: z.string().datetime(),
+});
+export type LogFile = z.infer<typeof logFileSchema>;
+
+export const logFileListResponseSchema = z.object({
+  files: z.array(logFileSchema),
+});
+export type LogFileListResponse = z.infer<typeof logFileListResponseSchema>;
