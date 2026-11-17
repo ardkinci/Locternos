@@ -464,4 +464,27 @@ describe('server runtime lifecycle', () => {
     assert.equal(started.statusCode, 409);
     assert.equal(started.json<{ code: string }>().code, 'core_missing');
   });
+
+  it('accepts a start request with an empty json body', async () => {
+    const server = await createServer(ctx);
+    await ctx.app.inject({
+      method: 'POST',
+      url: `/api/servers/${server.id}/eula`,
+      headers: { cookie: ctx.cookie },
+      payload: { accepted: true },
+    });
+
+    const started = await ctx.app.inject({
+      method: 'POST',
+      url: `/api/servers/${server.id}/start`,
+      headers: { cookie: ctx.cookie, 'content-type': 'application/json' },
+    });
+    assert.equal(started.statusCode, 200, started.body);
+
+    await ctx.app.inject({
+      method: 'POST',
+      url: `/api/servers/${server.id}/stop`,
+      headers: { cookie: ctx.cookie, 'content-type': 'application/json' },
+    });
+  });
 });
