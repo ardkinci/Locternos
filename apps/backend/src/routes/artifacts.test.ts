@@ -109,6 +109,21 @@ function fakeService(options: FakeOptions = {}): FakeService {
       assertServer(serverId);
       return [ARTIFACT];
     },
+    async preview(serverId, input) {
+      assertServer(serverId);
+      return {
+        project: { id: 'P1', slug: 'essentialsx', title: 'EssentialsX', projectType: input.kind },
+        versionId: 'V1',
+        dependencies: [
+          {
+            projectId: 'P2',
+            versionId: 'V2',
+            filename: 'LuckPerms.jar',
+            title: 'LuckPerms',
+          },
+        ],
+      };
+    },
     async setEnabled(serverId, artifactId, enabled, userId) {
       assertServer(serverId);
       enabledCalls.push({ serverId, artifactId, enabled, userId });
@@ -339,6 +354,28 @@ describe('artifact API', () => {
       url: `/api/servers/${SERVER.id}/artifacts/${ARTIFACT.id}`,
       headers: { cookie: ctx.cookie },
       payload: { enabled: 'yes' },
+    });
+    assert.equal(res.statusCode, 400);
+  });
+
+  it('previews the required dependencies of a Modrinth project', async () => {
+    const res = await ctx.app.inject({
+      method: 'GET',
+      url: `/api/servers/${SERVER.id}/artifacts/preview?kind=plugin&url=${encodeURIComponent(
+        'https://modrinth.com/plugin/essentialsx',
+      )}`,
+      headers: { cookie: ctx.cookie },
+    });
+    assert.equal(res.statusCode, 200);
+    const preview = res.json<{ dependencies: { title: string }[] }>();
+    assert.equal(preview.dependencies[0]?.title, 'LuckPerms');
+  });
+
+  it('rejects a preview without a valid kind', async () => {
+    const res = await ctx.app.inject({
+      method: 'GET',
+      url: `/api/servers/${SERVER.id}/artifacts/preview?kind=core&url=https://modrinth.com/plugin/x`,
+      headers: { cookie: ctx.cookie },
     });
     assert.equal(res.statusCode, 400);
   });
