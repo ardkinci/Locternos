@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { serverCoreTypeSchema, artifactKindSchema, artifactSourceTypeSchema } from './enums.js';
+import { artifactKindSchema, artifactSourceTypeSchema } from './enums.js';
 
 export const installCoreInputSchema = z.discriminatedUnion('coreType', [
   z.object({
