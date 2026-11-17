@@ -65,15 +65,15 @@ A self-hosted, local-first Aternos alternative for creating, configuring, and ma
 
 ### 1.5 Process Lifecycle, EULA, Console & Resource Control
 
-- [ ] Implement server workspace initializer (default `server.properties` port assignment with collision check; never auto-write `eula=true`)
-- [ ] Enforce explicit **Minecraft EULA** acceptance flow: block startup if `eula.txt` is missing or not `true`, display EULA dialog with link to `https://aka.ms/MinecraftEULA`, and write `eula=true` + log `audit_events` only after user confirmation
-- [ ] Implement process spawner with per-server `-Xms` / `-Xmx` RAM limits and JVM flag presets (`default`, `aikars`, `zgc`, plus custom flags)
-- [ ] Implement `Start`, `Graceful Stop` (write `stop` to `stdin` with configurable timeout fallback), `Force Kill`, and `Restart`
-- [ ] Stream `stdout`/`stderr` through a ring buffer and batched WebSocket broadcaster to keep UI responsive during high log volume
-- [ ] Parse Minecraft log lines (timestamp, thread, level) and flush to `server_logs` in batched transactions respecting the server's retention policy (skip DB log persistence when set to `none`)
-- [ ] Support sending console commands via WebSocket/REST and recording command audit events
-- [ ] Track live server process metrics (RAM RSS, CPU %, uptime) and update `peak_ram_mb` on `server_runs`
-- [ ] Calculate read-only server directory disk usage for display
+- [x] Implement server workspace initializer (default `server.properties` port assignment with collision check; never auto-write `eula=true`)
+- [x] Enforce explicit **Minecraft EULA** acceptance flow: block startup if `eula.txt` is missing or not `true`, display EULA dialog with link to `https://aka.ms/MinecraftEULA`, and write `eula=true` + log `audit_events` only after user confirmation
+- [x] Implement process spawner with per-server `-Xms` / `-Xmx` RAM limits and JVM flag presets (`default`, `aikars`, `zgc`, plus custom flags)
+- [x] Implement `Start`, `Graceful Stop` (write `stop` to `stdin` with configurable timeout fallback), `Force Kill`, and `Restart`
+- [x] Stream `stdout`/`stderr` through a ring buffer and batched WebSocket broadcaster to keep UI responsive during high log volume
+- [x] Parse Minecraft log lines (timestamp, thread, level) and flush to `server_logs` in batched transactions respecting the server's retention policy (skip DB log persistence when set to `none`)
+- [x] Support sending console commands via WebSocket/REST and recording command audit events
+- [x] Track live server process metrics (RAM RSS, CPU %, uptime) and update `peak_ram_mb` on `server_runs`
+- [x] Calculate read-only server directory disk usage for display
 
 ### 1.6 Basic Web Interface (MVP)
 

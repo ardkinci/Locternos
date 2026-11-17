@@ -25,6 +25,7 @@ import {
   type InstalledJar,
 } from '../artifacts/installer.js';
 import { getServer } from '../servers/service.js';
+import { serverDirectory } from '../servers/workspace.js';
 import { installVanillaServer } from '../providers/vanilla.js';
 import { installPaperServer } from '../providers/paper.js';
 import { installFabricServer } from '../providers/fabric.js';
@@ -103,10 +104,6 @@ export interface ArtifactInstallServiceOptions {
   config: Config;
   fetchImpl?: typeof fetch;
   now?: () => Date;
-}
-
-function serverDirectory(config: Config, server: Server): string {
-  return path.join(config.paths.servers, server.slug);
 }
 
 /** Routes an artifact to the conventional directory for its kind. */
