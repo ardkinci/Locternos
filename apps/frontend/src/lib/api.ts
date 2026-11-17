@@ -79,7 +79,7 @@ async function errorCode(res: Response): Promise<string | undefined> {
 async function request<T>(path: string, schema: Parser<T>, init?: RequestInit): Promise<T> {
   const res = await fetch(`/api${path}`, {
     ...init,
-    headers: { 'Content-Type': 'application/json', ...init?.headers },
+    headers: { ...jsonHeaders(init), ...init?.headers },
   });
   if (!res.ok) {
     throw new ApiError(res.status, await errorMessage(res), await errorCode(res));
@@ -90,11 +90,15 @@ async function request<T>(path: string, schema: Parser<T>, init?: RequestInit): 
 async function requestVoid(path: string, init?: RequestInit): Promise<void> {
   const res = await fetch(`/api${path}`, {
     ...init,
-    headers: { 'Content-Type': 'application/json', ...init?.headers },
+    headers: { ...jsonHeaders(init), ...init?.headers },
   });
   if (!res.ok) {
     throw new ApiError(res.status, await errorMessage(res), await errorCode(res));
   }
+}
+
+function jsonHeaders(init?: RequestInit): Record<string, string> {
+  return init?.body === undefined ? {} : { 'Content-Type': 'application/json' };
 }
 
 const post = (body?: unknown): RequestInit => ({
