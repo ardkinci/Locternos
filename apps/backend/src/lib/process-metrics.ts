@@ -51,7 +51,7 @@ async function readProcStat(pid: number): Promise<ProcStat | null> {
   }
 
   return {
-    ramMb: Math.round((rssPages * PAGE_SIZE_BYTES) / (1024 * 1024)),
+    ramMb: Math.ceil((rssPages * PAGE_SIZE_BYTES) / (1024 * 1024)),
     cpuTicks: utime + stime,
   };
 }
