@@ -94,7 +94,9 @@ export const runtimeRoutes: FastifyPluginAsync = async (app) => {
   app.post('/api/servers/:id/restart', { preHandler: requireAuth }, async (request, reply) => {
     const parsed = restartServerInputSchema.safeParse(request.body ?? {});
     if (!parsed.success) {
-      return reply.code(400).send({ error: 'Invalid restart payload', issues: parsed.error.issues });
+      return reply
+        .code(400)
+        .send({ error: 'Invalid restart payload', issues: parsed.error.issues });
     }
 
     const { id } = request.params as ServerParams;
@@ -109,7 +111,9 @@ export const runtimeRoutes: FastifyPluginAsync = async (app) => {
   app.post('/api/servers/:id/command', { preHandler: requireAuth }, async (request, reply) => {
     const parsed = sendConsoleCommandInputSchema.safeParse(request.body);
     if (!parsed.success) {
-      return reply.code(400).send({ error: 'Invalid command payload', issues: parsed.error.issues });
+      return reply
+        .code(400)
+        .send({ error: 'Invalid command payload', issues: parsed.error.issues });
     }
 
     const { id } = request.params as ServerParams;

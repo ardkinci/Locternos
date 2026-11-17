@@ -552,11 +552,7 @@ export function createServerRuntimeService(
     }
   }
 
-  function requestStop(
-    entry: ManagedServer,
-    reason: string,
-    timeoutMs: number,
-  ): void {
+  function requestStop(entry: ManagedServer, reason: string, timeoutMs: number): void {
     entry.status = 'stopping';
     entry.stopReason = reason;
     touchStatus(entry.serverId, 'stopping');
@@ -698,8 +694,7 @@ export function createServerRuntimeService(
     const server = requireServer(serverId);
     const entry = managed.get(serverId);
     const eulaAccepted =
-      server.eulaAcceptedAt !== null &&
-      (await isEulaAccepted(serverDirectory(config, server)));
+      server.eulaAcceptedAt !== null && (await isEulaAccepted(serverDirectory(config, server)));
     const state = buildState(server, entry, eulaAccepted);
 
     if (!entry) {

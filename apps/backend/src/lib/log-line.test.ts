@@ -6,7 +6,11 @@ const NOW = new Date('2026-03-04T10:00:00.000Z');
 
 describe('parseLogLine', () => {
   it('parses vanilla server lines', () => {
-    const parsed = parseLogLine('[10:15:30] [Server thread/INFO]: Starting minecraft server', 'stdout', NOW);
+    const parsed = parseLogLine(
+      '[10:15:30] [Server thread/INFO]: Starting minecraft server',
+      'stdout',
+      NOW,
+    );
     assert.equal(parsed.level, 'INFO');
     assert.equal(parsed.thread, 'Server thread');
     assert.equal(parsed.message, 'Starting minecraft server');
@@ -17,7 +21,7 @@ describe('parseLogLine', () => {
   });
 
   it('parses warnings and errors on stderr', () => {
-    const warn = parseLogLine('[10:15:30] [Server thread/WARN]: Can\'t keep up!', 'stderr', NOW);
+    const warn = parseLogLine("[10:15:30] [Server thread/WARN]: Can't keep up!", 'stderr', NOW);
     assert.equal(warn.level, 'WARN');
     assert.equal(warn.stream, 'stderr');
 
@@ -26,7 +30,11 @@ describe('parseLogLine', () => {
   });
 
   it('strips a trailing logger segment', () => {
-    const parsed = parseLogLine('[10:15:30] [Server thread/INFO] [Paper]: Loading plugins', 'stdout', NOW);
+    const parsed = parseLogLine(
+      '[10:15:30] [Server thread/INFO] [Paper]: Loading plugins',
+      'stdout',
+      NOW,
+    );
     assert.equal(parsed.message, 'Loading plugins');
     assert.equal(parsed.thread, 'Server thread');
   });
@@ -39,7 +47,11 @@ describe('parseLogLine', () => {
   });
 
   it('keeps JVM output readable', () => {
-    const parsed = parseLogLine('OpenJDK 64-Bit Server VM warning: Options -Xverify:none', 'stderr', NOW);
+    const parsed = parseLogLine(
+      'OpenJDK 64-Bit Server VM warning: Options -Xverify:none',
+      'stderr',
+      NOW,
+    );
     assert.equal(parsed.level, 'WARN');
     assert.equal(parsed.thread, null);
     assert.equal(parsed.message, 'OpenJDK 64-Bit Server VM warning: Options -Xverify:none');

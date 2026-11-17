@@ -214,7 +214,11 @@ describe('server runtime lifecycle', () => {
       headers: { cookie: ctx.cookie },
     });
     assert.equal(started.statusCode, 200, started.body);
-    assert.ok(['starting', 'running'].includes(started.json<{ runtime: ServerRuntimeState }>().runtime.status));
+    assert.ok(
+      ['starting', 'running'].includes(
+        started.json<{ runtime: ServerRuntimeState }>().runtime.status,
+      ),
+    );
 
     const running = await waitFor(
       () => getRuntime(ctx, server.id),
@@ -280,9 +284,7 @@ describe('server runtime lifecycle', () => {
     assert.ok((run.peak_ram_mb ?? 0) > 0);
 
     const logs = ctx.app.db.$client
-      .prepare(
-        'SELECT level, message FROM server_logs WHERE server_id = ? ORDER BY id ASC',
-      )
+      .prepare('SELECT level, message FROM server_logs WHERE server_id = ? ORDER BY id ASC')
       .all(server.id) as { level: string; message: string }[];
     assert.ok(logs.some((line) => line.message === 'Done (0.1s)! For help, type "help"'));
     assert.ok(logs.every((line) => line.level === 'INFO'));
@@ -428,9 +430,7 @@ describe('server runtime lifecycle', () => {
           message.serverId === server.id &&
           message.lines.some((line) => line.message === 'received ws-command'),
       );
-      socket.send(
-        JSON.stringify({ type: 'command', serverId: server.id, command: 'ws-command' }),
-      );
+      socket.send(JSON.stringify({ type: 'command', serverId: server.id, command: 'ws-command' }));
       await echo;
     } finally {
       // `injectWS` leaves a 30s close timer behind on a graceful close, so

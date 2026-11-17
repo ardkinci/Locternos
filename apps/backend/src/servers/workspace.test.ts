@@ -38,7 +38,10 @@ describe('server workspace', () => {
     await writeFile(path.join(workspace, 'server.properties'), 'server-port=30000\n', 'utf8');
 
     await initializeWorkspace(workspace, { port: 25565, motd: 'Second' });
-    assert.equal(await readFile(path.join(workspace, 'server.properties'), 'utf8'), 'server-port=30000\n');
+    assert.equal(
+      await readFile(path.join(workspace, 'server.properties'), 'utf8'),
+      'server-port=30000\n',
+    );
     assert.equal(await isEulaAccepted(workspace), false);
   });
 

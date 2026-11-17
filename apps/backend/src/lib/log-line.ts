@@ -127,10 +127,7 @@ export function isServerReadyLine(message: string): boolean {
  * Splits an arbitrary stdout/stderr chunk into complete lines, keeping the
  * trailing partial line for the next chunk.
  */
-export function splitLines(
-  chunk: string,
-  pending: string,
-): { lines: string[]; pending: string } {
+export function splitLines(chunk: string, pending: string): { lines: string[]; pending: string } {
   const combined = pending + chunk;
   const parts = combined.split('\n');
   const nextPending = parts.pop() ?? '';

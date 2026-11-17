@@ -41,7 +41,10 @@ async function readProcStat(pid: number): Promise<ProcStat | null> {
   // relative to the last closing parenthesis.
   const close = raw.lastIndexOf(')');
   if (close === -1) return null;
-  const fields = raw.slice(close + 2).trim().split(/\s+/);
+  const fields = raw
+    .slice(close + 2)
+    .trim()
+    .split(/\s+/);
   // fields[0] is field 3 (state); utime/stime are fields 14/15, RSS field 24.
   const utime = Number(fields[11]);
   const stime = Number(fields[12]);

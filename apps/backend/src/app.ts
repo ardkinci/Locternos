@@ -11,7 +11,10 @@ import { runMigrations } from './db/migrate.js';
 import { ensureDataLayout } from './data-dir.js';
 import { createJavaRuntimeService, type JavaRuntimeService } from './java/runtime-service.js';
 import { recoverOrphanedRuns } from './runs/service.js';
-import { createArtifactInstallService, type ArtifactInstallService } from './artifacts/install-service.js';
+import {
+  createArtifactInstallService,
+  type ArtifactInstallService,
+} from './artifacts/install-service.js';
 import {
   createServerRuntimeService,
   type ServerRuntimeService,
@@ -44,7 +47,11 @@ export interface BuildAppOptions {
   /** Test hook to tune process lifecycle timings. */
   runtimeServiceOptions?: Pick<
     ServerRuntimeServiceOptions,
-    'readyTimeoutMs' | 'stopTimeoutMs' | 'logFlushIntervalMs' | 'metricsIntervalMs' | 'diskIntervalMs'
+    | 'readyTimeoutMs'
+    | 'stopTimeoutMs'
+    | 'logFlushIntervalMs'
+    | 'metricsIntervalMs'
+    | 'diskIntervalMs'
   >;
   /** Test hook to replace the process lifecycle service entirely. */
   runtimeService?: ServerRuntimeService;
@@ -71,8 +78,7 @@ export async function buildApp(
   app.decorate('config', config);
   app.decorate(
     'javaRuntimeService',
-    options.javaRuntimeService ??
-      createJavaRuntimeService({ runtimesDir: config.paths.runtimes }),
+    options.javaRuntimeService ?? createJavaRuntimeService({ runtimesDir: config.paths.runtimes }),
   );
   app.decorate(
     'artifactInstallService',
