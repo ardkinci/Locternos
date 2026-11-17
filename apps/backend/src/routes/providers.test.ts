@@ -43,21 +43,34 @@ async function startTestApp(): Promise<TestContext> {
           });
         }
         if (url.endsWith('/projects/paper')) {
-          return jsonResponse({ versions: ['1.21.4', '1.20.6'] });
+          return jsonResponse({
+            project: { id: 'paper' },
+            versions: { '1.21.4': ['1.21.4'], '1.20.6': ['1.20.6'] },
+          });
         }
         if (url.includes('/builds')) {
-          return jsonResponse({
-            builds: [
-              {
-                build: 231,
-                downloads: { application: { name: 'paper.jar', sha256: 'a'.repeat(64) } },
+          return jsonResponse([
+            {
+              id: 231,
+              downloads: {
+                'server:default': {
+                  name: 'paper.jar',
+                  url: 'https://fill-data.papermc.io/v1/objects/aaa/paper.jar',
+                  checksums: { sha256: 'a'.repeat(64) },
+                },
               },
-              {
-                build: 230,
-                downloads: { application: { name: 'paper.jar', sha256: 'b'.repeat(64) } },
+            },
+            {
+              id: 230,
+              downloads: {
+                'server:default': {
+                  name: 'paper.jar',
+                  url: 'https://fill-data.papermc.io/v1/objects/bbb/paper.jar',
+                  checksums: { sha256: 'b'.repeat(64) },
+                },
               },
-            ],
-          });
+            },
+          ]);
         }
         if (url.includes('/v2/versions/game')) {
           return jsonResponse([{ version: '1.21.4', stable: true }]);

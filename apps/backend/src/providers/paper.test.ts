@@ -15,9 +15,9 @@ import {
 
 const JAR = 'paper-jar-fixture';
 const SHA256 = createHash('sha256').update(JAR).digest('hex');
-const API = 'https://api.papermc.io/v2/projects/paper';
+const API = 'https://fill.papermc.io/v3/projects/paper';
 const VERSION_URL = `${API}/versions/1.21.4/builds`;
-const DOWNLOAD_URL = `${API}/versions/1.21.4/builds/42/downloads/paper-1.21.4-42.jar`;
+const DOWNLOAD_URL = 'https://fill-data.papermc.io/v1/objects/abc/paper-1.21.4-42.jar';
 
 function fakeFetch(routes: Record<string, unknown>, jar = JAR): typeof fetch {
   return (async (input: string | URL | Request) => {
@@ -32,21 +32,31 @@ function fakeFetch(routes: Record<string, unknown>, jar = JAR): typeof fetch {
 
 function routes(): Record<string, unknown> {
   return {
-    [API]: { versions: ['1.21.4', '1.21.3'] },
-    [VERSION_URL]: {
-      builds: [
-        {
-          build: 41,
-          downloads: { application: { name: 'paper-1.21.4-41.jar', sha256: 'a'.repeat(64) } },
-        },
-        {
-          build: 42,
-          downloads: {
-            application: { name: 'paper-1.21.4-42.jar', sha256: SHA256 },
+    [API]: { project: { id: 'paper' }, versions: { '1.21.4': ['1.21.4'], '1.21.3': ['1.21.3'] } },
+    [VERSION_URL]: [
+      {
+        id: 41,
+        channel: 'STABLE',
+        downloads: {
+          'server:default': {
+            name: 'paper-1.21.4-41.jar',
+            url: 'https://fill-data.papermc.io/v1/objects/def/paper-1.21.4-41.jar',
+            checksums: { sha256: 'a'.repeat(64) },
           },
         },
-      ],
-    },
+      },
+      {
+        id: 42,
+        channel: 'STABLE',
+        downloads: {
+          'server:default': {
+            name: 'paper-1.21.4-42.jar',
+            url: DOWNLOAD_URL,
+            checksums: { sha256: SHA256 },
+          },
+        },
+      },
+    ],
   };
 }
 
@@ -85,9 +95,14 @@ describe('paper provider', () => {
     await assert.rejects(resolvePaperBuild('1.21.4', 999, fakeFetch(routes())), PaperProviderError);
   });
 
-  it('builds the official download URL', () => {
+  it('uses the download URL published with the build', () => {
     assert.equal(
-      paperDownloadUrl('1.21.4', { build: 42, filename: 'paper-1.21.4-42.jar', sha256: SHA256 }),
+      paperDownloadUrl('1.21.4', {
+        build: 42,
+        filename: 'paper-1.21.4-42.jar',
+        sha256: SHA256,
+        url: DOWNLOAD_URL,
+      }),
       DOWNLOAD_URL,
     );
   });
