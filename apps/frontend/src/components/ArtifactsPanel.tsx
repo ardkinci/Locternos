@@ -1,5 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
-import type { Artifact, ArtifactKind, FallbackVersion, Server } from '@locternos/shared';
+import type {
+  Artifact,
+  ArtifactKind,
+  ArtifactPreview,
+  FallbackVersion,
+  Server,
+} from '@locternos/shared';
 import { api } from '../lib/api';
 import { formatTimestamp } from '../lib/format';
 import { Field, inputClass, secondaryButtonClass } from './ui';
@@ -27,6 +33,8 @@ export function ArtifactsPanel({ server, onChanged }: ArtifactsPanelProps) {
   const [file, setFile] = useState<File | null>(null);
   const [fallbacks, setFallbacks] = useState<FallbackVersion[]>([]);
   const [pendingProject, setPendingProject] = useState<string | null>(null);
+  const [preview, setPreview] = useState<ArtifactPreview | null>(null);
+  const [installedDependencies, setInstalledDependencies] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -49,6 +57,23 @@ export function ArtifactsPanel({ server, onChanged }: ArtifactsPanelProps) {
       active = false;
     };
   }, [load]);
+
+  async function checkDependencies() {
+    setError(null);
+    setBusy(true);
+    try {
+      if (!modrinthUrl.trim()) {
+        setError('Enter a Modrinth page URL first.');
+        return;
+      }
+      const result = await api.previewArtifact(server.id, kind, modrinthUrl.trim());
+      setPreview(result);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function install() {
     setError(null);
@@ -88,6 +113,7 @@ export function ArtifactsPanel({ server, onChanged }: ArtifactsPanelProps) {
           setFallbacks(outcome.fallbackVersions);
           setNotice('No exact version matched; pick a compatible version below.');
         } else {
+          setInstalledDependencies(outcome.dependencies.map((entry) => entry.filename));
           setNotice(
             `Installed ${outcome.artifact.filename}${
               outcome.dependencies.length > 0
@@ -201,6 +227,45 @@ export function ArtifactsPanel({ server, onChanged }: ArtifactsPanelProps) {
                 onChange={(event) => setModrinthUrl(event.target.value)}
               />
             </Field>
+          )}
+
+          {mode === 'modrinth' && (
+            <button
+              type="button"
+              className={secondaryButtonClass}
+              onClick={() => void checkDependencies()}
+              disabled={busy}
+            >
+              Check dependencies
+            </button>
+          )}
+
+          {preview && (
+            <div className="rounded-md border border-slate-800 p-3 text-sm">
+              <p className="text-slate-300">{preview.project.title}</p>
+              {preview.dependencies.length === 0 ? (
+                <p className="mt-1 text-xs text-slate-500">No required dependencies detected.</p>
+              ) : (
+                <ul className="mt-1 list-inside list-disc text-xs text-slate-400">
+                  {preview.dependencies.map((dependency) => (
+                    <li key={dependency.projectId}>
+                      {dependency.title} ({dependency.filename})
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
+
+          {installedDependencies.length > 0 && (
+            <div className="rounded-md border border-emerald-900 p-3 text-sm">
+              <p className="text-emerald-300">Installed dependencies</p>
+              <ul className="mt-1 list-inside list-disc text-xs text-emerald-200/80">
+                {installedDependencies.map((name) => (
+                  <li key={name}>{name}</li>
+                ))}
+              </ul>
+            </div>
           )}
 
           {mode === 'direct' && (

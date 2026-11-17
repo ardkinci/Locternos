@@ -1,6 +1,7 @@
 import {
   acceptEulaResponseSchema,
   artifactListResponseSchema,
+  artifactPreviewResponseSchema,
   auditEventListResponseSchema,
   createServerInputSchema,
   fabricVersionsResponseSchema,
@@ -26,6 +27,7 @@ import {
   vanillaVersionsResponseSchema,
   type AcceptEulaInput,
   type Artifact,
+  type ArtifactKind,
   type CreateServerInput,
   type HealthResponse,
   type InstallArtifactInput,
@@ -177,6 +179,11 @@ export const api = {
   },
   removeArtifact: (id: string, artifactId: string) =>
     requestVoid(`/servers/${id}/artifacts/${artifactId}`, del),
+  previewArtifact: (id: string, kind: ArtifactKind, modrinthUrl: string) =>
+    request(
+      `/servers/${id}/artifacts/preview${queryString({ kind, url: modrinthUrl })}`,
+      artifactPreviewResponseSchema,
+    ),
   setArtifactEnabled: (id: string, artifactId: string, enabled: boolean) =>
     request(
       `/servers/${id}/artifacts/${artifactId}`,
