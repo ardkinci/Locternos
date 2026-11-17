@@ -45,7 +45,7 @@ export function appendServerLogs(
     message: entry.message,
   }));
 
-  db.insert(serverLogs).values(rows as any).run();
+  db.insert(serverLogs).values(rows).run();
   return rows.length;
 }
 
@@ -116,6 +116,6 @@ export function searchServerLogs(
   sql += ` ORDER BY l.timestamp DESC LIMIT ?`;
   params.push(limit);
 
-  const rows = (db.$client as any).prepare(sql).all(...params) as LogRow[];
+  const rows = db.$client.prepare(sql).all(...params) as LogRow[];
   return rows.map(toServerLog);
 }

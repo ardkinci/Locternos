@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { desc, eq } from 'drizzle-orm';
+import { and, desc, eq, isNull, type SQL } from 'drizzle-orm';
 import type { AuditEvent } from '@locternos/shared';
 import type { Db } from '../db/client.js';
 import { auditEvents } from '../db/schema.js';
@@ -57,15 +57,25 @@ export function listAuditEvents(
 ): AuditEvent[] {
   const { serverId, userId, limit = 1000 } = options;
 
-  let query = db.select().from(auditEvents);
-
-  if (serverId !== undefined) {
-    query = query.where(eq(auditEvents.serverId, serverId)) as any;
+  const conditions: SQL[] = [];
+  if (serverId === null) {
+    conditions.push(isNull(auditEvents.serverId));
+  } else if (serverId !== undefined) {
+    conditions.push(eq(auditEvents.serverId, serverId));
+  }
+  if (userId === null) {
+    conditions.push(isNull(auditEvents.userId));
   } else if (userId !== undefined) {
-    query = query.where(eq(auditEvents.userId, userId)) as any;
+    conditions.push(eq(auditEvents.userId, userId));
   }
 
-  const rows = (query.orderBy(desc(auditEvents.createdAt)).limit(limit) as any).all();
+  const rows = db
+    .select()
+    .from(auditEvents)
+    .where(conditions.length > 0 ? and(...conditions) : undefined)
+    .orderBy(desc(auditEvents.createdAt))
+    .limit(limit)
+    .all();
   return rows.map(toAuditEvent);
 }
 
