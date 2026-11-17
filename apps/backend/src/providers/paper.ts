@@ -1,6 +1,6 @@
 import { downloadToFile } from '../lib/download.js';
 
-const PAPER_API = 'https://api.papermc.io/v2/projects/paper';
+const PAPER_API = 'https://fill.papermc.io/v3/projects/paper';
 const METADATA_TIMEOUT_MS = 15_000;
 
 export class PaperProviderError extends Error {
@@ -14,6 +14,7 @@ export interface PaperBuild {
   build: number;
   filename: string;
   sha256: string;
+  url: string;
 }
 
 function isObject(value: unknown): value is Record<string, unknown> {
@@ -42,10 +43,10 @@ async function fetchJson(url: string, fetchImpl: typeof fetch): Promise<unknown>
 /** Lists Minecraft versions Paper publishes builds for, newest first. */
 export async function fetchPaperVersions(fetchImpl: typeof fetch = fetch): Promise<string[]> {
   const data = await fetchJson(PAPER_API, fetchImpl);
-  if (!isObject(data) || !Array.isArray(data.versions)) {
+  if (!isObject(data) || !isObject(data.versions)) {
     throw new PaperProviderError('Invalid PaperMC versions response');
   }
-  return data.versions.filter((version): version is string => typeof version === 'string');
+  return Object.keys(data.versions);
 }
 
 /** Lists usable builds for a Paper version, newest first. */
@@ -55,25 +56,22 @@ export async function fetchPaperBuilds(
 ): Promise<PaperBuild[]> {
   const url = `${PAPER_API}/versions/${encodeURIComponent(version)}/builds`;
   const data = await fetchJson(url, fetchImpl);
-  if (!isObject(data) || !Array.isArray(data.builds)) {
+  if (!Array.isArray(data)) {
     throw new PaperProviderError(`Invalid PaperMC builds response for ${version}`);
   }
 
   const builds: PaperBuild[] = [];
-  for (const entry of data.builds) {
-    if (!isObject(entry) || typeof entry.build !== 'number') continue;
-    const application =
-      isObject(entry.downloads) && isObject(entry.downloads.application)
-        ? entry.downloads.application
-        : null;
-    if (
-      !application ||
-      typeof application.name !== 'string' ||
-      typeof application.sha256 !== 'string'
-    ) {
-      continue;
-    }
-    builds.push({ build: entry.build, filename: application.name, sha256: application.sha256 });
+  for (const entry of data) {
+    if (!isObject(entry) || typeof entry.id !== 'number') continue;
+    const downloads = isObject(entry.downloads) ? entry.downloads : null;
+    const server = downloads && isObject(downloads['server:default']) ? downloads['server:default'] : null;
+    if (!server || typeof server.name !== 'string' || typeof server.url !== 'string') continue;
+
+    const checksums = isObject(server.checksums) ? server.checksums : null;
+    const sha256 = checksums && typeof checksums.sha256 === 'string' ? checksums.sha256 : null;
+    if (!sha256) continue;
+
+    builds.push({ build: entry.id, filename: server.name, sha256, url: server.url });
   }
   return builds.sort((a, b) => b.build - a.build);
 }
@@ -104,10 +102,7 @@ export async function resolvePaperBuild(
 }
 
 export function paperDownloadUrl(version: string, build: PaperBuild): string {
-  return (
-    `${PAPER_API}/versions/${encodeURIComponent(version)}/builds/${build.build}` +
-    `/downloads/${encodeURIComponent(build.filename)}`
-  );
+  return build.url;
 }
 
 /** Downloads a Paper build and verifies PaperMC's SHA-256. */

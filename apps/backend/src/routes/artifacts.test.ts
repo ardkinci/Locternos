@@ -52,6 +52,7 @@ const ARTIFACT: Artifact = {
   versionId: 'V1',
   sha256: '0'.repeat(64),
   installedAt: '2026-01-02T03:04:05.000Z',
+  enabled: true,
 };
 
 interface FakeService extends ArtifactInstallService {
@@ -59,6 +60,12 @@ interface FakeService extends ArtifactInstallService {
   artifactCalls: Array<{ serverId: string; input: InstallArtifactInput; userId: string | null }>;
   uploadCalls: Array<{ serverId: string; input: UploadArtifactInput; userId: string | null }>;
   removeCalls: Array<{ serverId: string; artifactId: string; userId: string | null }>;
+  enabledCalls: Array<{
+    serverId: string;
+    artifactId: string;
+    enabled: boolean;
+    userId: string | null;
+  }>;
 }
 
 interface FakeOptions {
@@ -71,6 +78,7 @@ function fakeService(options: FakeOptions = {}): FakeService {
   const artifactCalls: FakeService['artifactCalls'] = [];
   const uploadCalls: FakeService['uploadCalls'] = [];
   const removeCalls: FakeService['removeCalls'] = [];
+  const enabledCalls: FakeService['enabledCalls'] = [];
 
   function assertServer(serverId: string): void {
     if (options.missingServer || serverId !== SERVER.id) throw new ServerNotFoundError();
@@ -81,6 +89,7 @@ function fakeService(options: FakeOptions = {}): FakeService {
     artifactCalls,
     uploadCalls,
     removeCalls,
+    enabledCalls,
     async installCore(serverId, input, userId) {
       assertServer(serverId);
       coreCalls.push({ serverId, input, userId });
@@ -99,6 +108,26 @@ function fakeService(options: FakeOptions = {}): FakeService {
     list(serverId) {
       assertServer(serverId);
       return [ARTIFACT];
+    },
+    async preview(serverId, input) {
+      assertServer(serverId);
+      return {
+        project: { id: 'P1', slug: 'essentialsx', title: 'EssentialsX', projectType: input.kind },
+        versionId: 'V1',
+        dependencies: [
+          {
+            projectId: 'P2',
+            versionId: 'V2',
+            filename: 'LuckPerms.jar',
+            title: 'LuckPerms',
+          },
+        ],
+      };
+    },
+    async setEnabled(serverId, artifactId, enabled, userId) {
+      assertServer(serverId);
+      enabledCalls.push({ serverId, artifactId, enabled, userId });
+      return artifactId === ARTIFACT.id ? { ...ARTIFACT, enabled } : null;
     },
     async remove(serverId, artifactId, userId) {
       assertServer(serverId);
@@ -295,6 +324,58 @@ describe('artifact API', () => {
       url: `/api/servers/${SERVER.id}/artifacts/upload?kind=world`,
       headers: { cookie: ctx.cookie, 'content-type': contentType },
       payload: body,
+    });
+    assert.equal(res.statusCode, 400);
+  });
+
+  it('enables and disables an artifact', async () => {
+    const disabled = await ctx.app.inject({
+      method: 'PATCH',
+      url: `/api/servers/${SERVER.id}/artifacts/${ARTIFACT.id}`,
+      headers: { cookie: ctx.cookie },
+      payload: { enabled: false },
+    });
+    assert.equal(disabled.statusCode, 200);
+    assert.equal(disabled.json<{ artifact: { enabled: boolean } }>().artifact.enabled, false);
+    assert.equal(ctx.service.enabledCalls.at(-1)?.enabled, false);
+
+    const missing = await ctx.app.inject({
+      method: 'PATCH',
+      url: `/api/servers/${SERVER.id}/artifacts/does-not-exist`,
+      headers: { cookie: ctx.cookie },
+      payload: { enabled: true },
+    });
+    assert.equal(missing.statusCode, 404);
+  });
+
+  it('rejects an invalid artifact toggle payload', async () => {
+    const res = await ctx.app.inject({
+      method: 'PATCH',
+      url: `/api/servers/${SERVER.id}/artifacts/${ARTIFACT.id}`,
+      headers: { cookie: ctx.cookie },
+      payload: { enabled: 'yes' },
+    });
+    assert.equal(res.statusCode, 400);
+  });
+
+  it('previews the required dependencies of a Modrinth project', async () => {
+    const res = await ctx.app.inject({
+      method: 'GET',
+      url: `/api/servers/${SERVER.id}/artifacts/preview?kind=plugin&url=${encodeURIComponent(
+        'https://modrinth.com/plugin/essentialsx',
+      )}`,
+      headers: { cookie: ctx.cookie },
+    });
+    assert.equal(res.statusCode, 200);
+    const preview = res.json<{ dependencies: { title: string }[] }>();
+    assert.equal(preview.dependencies[0]?.title, 'LuckPerms');
+  });
+
+  it('rejects a preview without a valid kind', async () => {
+    const res = await ctx.app.inject({
+      method: 'GET',
+      url: `/api/servers/${SERVER.id}/artifacts/preview?kind=core&url=https://modrinth.com/plugin/x`,
+      headers: { cookie: ctx.cookie },
     });
     assert.equal(res.statusCode, 400);
   });

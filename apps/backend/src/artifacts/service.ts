@@ -18,6 +18,7 @@ function toArtifact(row: ArtifactRow): Artifact {
     versionId: row.versionId,
     sha256: row.sha256,
     installedAt: row.installedAt,
+    enabled: row.enabled,
   };
 }
 
@@ -52,6 +53,7 @@ export function recordArtifact(
     versionId: input.versionId ?? null,
     sha256: input.sha256,
     installedAt: timestamp,
+    enabled: true,
   };
 
   db.insert(artifacts).values(row).run();
@@ -68,6 +70,15 @@ export function listArtifacts(db: Db, serverId: string): Artifact[] {
 export function getArtifact(db: Db, id: string): Artifact | null {
   const row = db.select().from(artifacts).where(eq(artifacts.id, id)).get();
   return row ? toArtifact(row) : null;
+}
+
+/** Update the enabled state of an artifact. Returns the updated artifact. */
+export function setArtifactEnabled(db: Db, id: string, enabled: boolean): Artifact | null {
+  const existing = db.select().from(artifacts).where(eq(artifacts.id, id)).get();
+  if (!existing) return null;
+
+  db.update(artifacts).set({ enabled }).where(eq(artifacts.id, id)).run();
+  return toArtifact({ ...existing, enabled });
 }
 
 /** Delete an artifact. Returns true if it existed. */

@@ -60,8 +60,7 @@ function modrinthRoutes(): Record<string, Handler> {
     url: 'https://cdn.modrinth.com/essentialsx.jar',
     filename: 'essentialsx.jar',
     size: JAR.length,
-    sha1: 'a'.repeat(40),
-    sha512: 'b'.repeat(128),
+    hashes: { sha1: 'a'.repeat(40), sha512: 'b'.repeat(128) },
     primary: true,
   };
   const depFile = { ...versionFile, url: 'https://cdn.modrinth.com/lib.jar', filename: 'lib.jar' };
@@ -71,13 +70,13 @@ function modrinthRoutes(): Record<string, Handler> {
         id: 'P1',
         slug: 'essentialsx',
         title: 'EssentialsX',
-        project_type: 'plugin',
+        project_type: 'mod',
         description: '',
       }),
     'https://api.modrinth.com/v2/project/lib': () =>
-      json({ id: 'P2', slug: 'lib', title: 'Lib', project_type: 'plugin', description: '' }),
+      json({ id: 'P2', slug: 'lib', title: 'Lib', project_type: 'mod', description: '' }),
     'https://api.modrinth.com/v2/project/P2': () =>
-      json({ id: 'P2', slug: 'lib', title: 'Lib', project_type: 'plugin', description: '' }),
+      json({ id: 'P2', slug: 'lib', title: 'Lib', project_type: 'mod', description: '' }),
     'https://api.modrinth.com/v2/project/P1/version?game_versions=%5B%221.21.4%22%5D&loaders=%5B%22paper%22%2C%22spigot%22%2C%22bukkit%22%5D':
       () =>
         json([
@@ -241,6 +240,24 @@ describe('artifact install service', () => {
     assert.deepEqual(files.sort(), ['essentialsx.jar', 'lib.jar']);
   });
 
+  it('rejects a Modrinth URL whose path kind differs from the requested kind', async () => {
+    const ctx = await harness(routedFetch(modrinthRoutes()), 'paper');
+    cleanups.push(ctx.cleanup);
+
+    await assert.rejects(
+      ctx.service.installArtifact(
+        ctx.server.id,
+        {
+          kind: 'plugin',
+          sourceType: 'modrinth_page',
+          modrinthUrl: 'https://modrinth.com/mod/essentialsx',
+        },
+        null,
+      ),
+      /Modrinth URL is a mod, not a plugin/,
+    );
+  });
+
   it('returns fallback versions when Modrinth has no exact match', async () => {
     const routes = modrinthRoutes();
     routes[
@@ -258,8 +275,7 @@ describe('artifact install service', () => {
           url: 'https://cdn.modrinth.com/old.jar',
           filename: 'old.jar',
           size: JAR.length,
-          sha1: 'c'.repeat(40),
-          sha512: 'd'.repeat(128),
+          hashes: { sha1: 'c'.repeat(40), sha512: 'd'.repeat(128) },
           primary: true,
         },
       ],

@@ -1,9 +1,10 @@
 import path from 'node:path';
-import { mkdir, rm } from 'node:fs/promises';
+import { mkdir, rename, rm } from 'node:fs/promises';
 import { eq } from 'drizzle-orm';
 import type {
   Artifact,
   ArtifactKind,
+  ArtifactPreview,
   InstallArtifactInput,
   InstallCoreInput,
   Server,
@@ -17,6 +18,7 @@ import {
   listArtifacts,
   recordArtifact,
   getArtifact,
+  setArtifactEnabled as setArtifactEnabledRow,
 } from '../artifacts/service.js';
 import {
   downloadJarFromUrl,
@@ -31,6 +33,7 @@ import { installPaperServer } from '../providers/paper.js';
 import { installFabricServer } from '../providers/fabric.js';
 import {
   modrinthLoadersForCore,
+  parseModrinthUrl,
   resolveModrinthPage,
   resolveRequiredDependencies,
   type ModrinthProject,
@@ -96,6 +99,16 @@ export interface ArtifactInstallService {
     userId: string | null,
   ): Promise<{ artifact: Artifact }>;
   list(serverId: string): Artifact[];
+  preview(
+    serverId: string,
+    input: { kind: ArtifactKind; modrinthUrl: string; versionId?: string },
+  ): Promise<ArtifactPreview>;
+  setEnabled(
+    serverId: string,
+    artifactId: string,
+    enabled: boolean,
+    userId: string | null,
+  ): Promise<Artifact | null>;
   remove(serverId: string, artifactId: string, userId: string | null): Promise<boolean>;
 }
 
@@ -140,6 +153,14 @@ function projectInfo(project: ModrinthProject) {
     title: project.title,
     projectType: project.projectType,
   };
+}
+
+function assertModrinthUrlKind(modrinthUrl: string, kind: ArtifactKind): void {
+  const parsed = parseModrinthUrl(modrinthUrl);
+  if (!parsed) throw new ArtifactInstallError('Unsupported Modrinth URL');
+  if (parsed.projectType !== kind) {
+    throw new ArtifactInstallError(`Modrinth URL is a ${parsed.projectType}, not a ${kind}`);
+  }
 }
 
 export function createArtifactInstallService(
@@ -245,6 +266,54 @@ export function createArtifactInstallService(
     return { server: requireServer(serverId), artifact };
   }
 
+  async function preview(
+    serverId: string,
+    input: { kind: ArtifactKind; modrinthUrl: string; versionId?: string },
+  ): Promise<ArtifactPreview> {
+    const server = requireServer(serverId);
+    if (!server.mcVersion) {
+      throw new ArtifactInstallError('Server has no Minecraft version; set one before installing');
+    }
+
+    const loaders = modrinthLoadersForCore(server.coreType);
+    if (input.kind === 'plugin' && loaders.length === 0) {
+      throw new ArtifactInstallError('This server core does not support plugins');
+    }
+    if (input.kind === 'mod' && !loaders.includes('fabric')) {
+      throw new ArtifactInstallError('Only Fabric servers support mods right now');
+    }
+
+    assertModrinthUrlKind(input.modrinthUrl, input.kind);
+
+    const resolution = await resolveModrinthPage(input.modrinthUrl, {
+      gameVersion: server.mcVersion,
+      loaders,
+      versionId: input.versionId,
+      fetchImpl,
+    });
+
+    if (!resolution.version) {
+      return { project: projectInfo(resolution.project), versionId: null, dependencies: [] };
+    }
+
+    const dependencies = await resolveRequiredDependencies(resolution.version, {
+      gameVersion: server.mcVersion,
+      loaders,
+      fetchImpl,
+    });
+
+    return {
+      project: projectInfo(resolution.project),
+      versionId: resolution.version.id,
+      dependencies: dependencies.map((dependency) => ({
+        projectId: dependency.project.id,
+        versionId: dependency.version.id,
+        filename: dependency.version.primaryFile.filename,
+        title: dependency.project.title,
+      })),
+    };
+  }
+
   async function installArtifact(
     serverId: string,
     input: InstallArtifactInput,
@@ -282,6 +351,8 @@ export function createArtifactInstallService(
       throw new ArtifactInstallError('Only Fabric servers support mods right now');
     }
 
+    assertModrinthUrlKind(input.modrinthUrl, input.kind);
+
     const resolution = await resolveModrinthPage(input.modrinthUrl, {
       gameVersion: server.mcVersion,
       loaders,
@@ -295,12 +366,6 @@ export function createArtifactInstallService(
         project: projectInfo(resolution.project),
         fallbackVersions: resolution.fallbackVersions.map(fallbackInfo),
       };
-    }
-
-    if (resolution.project.projectType !== input.kind) {
-      throw new ArtifactInstallError(
-        `Modrinth project is a ${resolution.project.projectType}, not a ${input.kind}`,
-      );
     }
 
     const installed = await downloadJarFromUrl({
@@ -335,7 +400,6 @@ export function createArtifactInstallService(
 
     const dependencyArtifacts: Artifact[] = [];
     for (const dependency of dependencies) {
-      if (dependency.project.projectType !== input.kind) continue;
       const depInstalled = await downloadJarFromUrl({
         url: dependency.version.primaryFile.url,
         destinationDir,
@@ -445,6 +509,50 @@ export function createArtifactInstallService(
     );
   }
 
+  async function setEnabled(
+    serverId: string,
+    artifactId: string,
+    enabled: boolean,
+    userId: string | null,
+  ): Promise<Artifact | null> {
+    const server = requireServer(serverId);
+    const artifact = getArtifact(db, artifactId);
+    if (!artifact || artifact.serverId !== serverId) return null;
+    if (artifact.kind === 'core') {
+      throw new ArtifactInstallError('The server core cannot be disabled');
+    }
+
+    const directory = artifactDirectory(config, server, artifact.kind);
+    const filename = path.basename(artifact.filename);
+    const activePath = path.join(directory, filename);
+    const disabledPath = `${activePath}.disabled`;
+
+    if (artifact.enabled === enabled) {
+      return artifact;
+    }
+
+    if (enabled) {
+      await rename(disabledPath, activePath);
+    } else {
+      await rename(activePath, disabledPath);
+    }
+
+    const updated = setArtifactEnabledRow(db, artifactId, enabled);
+    if (updated) {
+      recordAuditEvent(
+        db,
+        {
+          action: enabled ? 'artifact.enabled' : 'artifact.disabled',
+          serverId,
+          userId,
+          details: { kind: artifact.kind, filename: artifact.filename },
+        },
+        now(),
+      );
+    }
+    return updated;
+  }
+
   async function remove(
     serverId: string,
     artifactId: string,
@@ -457,6 +565,7 @@ export function createArtifactInstallService(
     const filename = path.basename(artifact.filename);
     const filePath = path.join(artifactDirectory(config, server, artifact.kind), filename);
     await rm(filePath, { force: true });
+    await rm(`${filePath}.disabled`, { force: true });
 
     const removed = deleteArtifactRow(db, artifactId);
     if (removed) {
@@ -482,6 +591,8 @@ export function createArtifactInstallService(
       requireServer(serverId);
       return listArtifacts(db, serverId);
     },
+    preview,
+    setEnabled,
     remove,
   };
 }

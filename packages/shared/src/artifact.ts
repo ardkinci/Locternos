@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { artifactKindSchema, artifactSourceTypeSchema } from './enums.js';
+import { serverSchema } from './server.js';
 
 export const artifactSchema = z.object({
   id: z.string(),
@@ -12,5 +13,81 @@ export const artifactSchema = z.object({
   versionId: z.string().nullable(),
   sha256: z.string().length(64),
   installedAt: z.string().datetime(),
+  enabled: z.boolean(),
 });
 export type Artifact = z.infer<typeof artifactSchema>;
+
+export const setArtifactEnabledInputSchema = z.object({
+  enabled: z.boolean(),
+});
+export type SetArtifactEnabledInput = z.infer<typeof setArtifactEnabledInputSchema>;
+
+export const setArtifactEnabledResponseSchema = z.object({
+  artifact: artifactSchema,
+});
+export type SetArtifactEnabledResponse = z.infer<typeof setArtifactEnabledResponseSchema>;
+
+export const artifactListResponseSchema = z.object({
+  artifacts: z.array(artifactSchema),
+});
+export type ArtifactListResponse = z.infer<typeof artifactListResponseSchema>;
+
+/** A Modrinth version the resolver could not auto-match. */
+export const fallbackVersionSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  versionNumber: z.string(),
+  gameVersions: z.array(z.string()),
+  loaders: z.array(z.string()),
+  filename: z.string(),
+  sizeBytes: z.number().int(),
+});
+export type FallbackVersion = z.infer<typeof fallbackVersionSchema>;
+
+export const modrinthProjectInfoSchema = z.object({
+  id: z.string(),
+  slug: z.string(),
+  title: z.string(),
+  projectType: z.string(),
+});
+export type ModrinthProjectInfo = z.infer<typeof modrinthProjectInfoSchema>;
+
+/**
+ * Outcome of an artifact install: either the artifact (and its required
+ * dependencies) were installed, or the user has to pick a version.
+ */
+export const installArtifactOutcomeSchema = z.discriminatedUnion('status', [
+  z.object({
+    status: z.literal('installed'),
+    artifact: artifactSchema,
+    dependencies: z.array(artifactSchema),
+  }),
+  z.object({
+    status: z.literal('needs_selection'),
+    project: modrinthProjectInfoSchema,
+    fallbackVersions: z.array(fallbackVersionSchema),
+  }),
+]);
+export type InstallArtifactOutcome = z.infer<typeof installArtifactOutcomeSchema>;
+
+export const installCoreResponseSchema = z.object({
+  server: serverSchema,
+  artifact: artifactSchema,
+});
+export type InstallCoreResponse = z.infer<typeof installCoreResponseSchema>;
+
+/** A required dependency detected for a Modrinth project. */
+export const artifactDependencySchema = z.object({
+  projectId: z.string(),
+  versionId: z.string(),
+  filename: z.string(),
+  title: z.string(),
+});
+export type ArtifactDependency = z.infer<typeof artifactDependencySchema>;
+
+export const artifactPreviewResponseSchema = z.object({
+  project: modrinthProjectInfoSchema,
+  versionId: z.string().nullable(),
+  dependencies: z.array(artifactDependencySchema),
+});
+export type ArtifactPreview = z.infer<typeof artifactPreviewResponseSchema>;

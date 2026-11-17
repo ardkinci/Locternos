@@ -12,6 +12,7 @@ export class WsClient {
   private socket: WebSocket | null = null;
   private listeners = new Set<Listener>();
   private statusListeners = new Set<StatusListener>();
+  private subscriptions = new Set<string>();
   private retry = 0;
   private timer: ReturnType<typeof setTimeout> | null = null;
   private closed = false;
@@ -25,6 +26,10 @@ export class WsClient {
     socket.onopen = () => {
       this.retry = 0;
       this.statusListeners.forEach((l) => l(true));
+      // Restore the subscriptions that were active before the reconnect.
+      for (const serverId of this.subscriptions) {
+        this.send({ type: 'subscribe', serverId });
+      }
     };
     socket.onmessage = (ev) => {
       try {
@@ -44,6 +49,23 @@ export class WsClient {
 
   send(msg: WsClientMessage): void {
     if (this.socket?.readyState === WebSocket.OPEN) this.socket.send(JSON.stringify(msg));
+  }
+
+  /** Subscribes to the console and runtime events of a server. */
+  subscribe(serverId: string): void {
+    this.subscriptions.add(serverId);
+    this.send({ type: 'subscribe', serverId });
+  }
+
+  /** Stops receiving events for a server. */
+  unsubscribe(serverId: string): void {
+    this.subscriptions.delete(serverId);
+    this.send({ type: 'unsubscribe', serverId });
+  }
+
+  /** Sends a console command to a running server. */
+  sendCommand(serverId: string, command: string): void {
+    this.send({ type: 'command', serverId, command });
   }
 
   onMessage(listener: Listener): () => void {
