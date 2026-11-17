@@ -31,6 +31,12 @@ interface UploadQuery {
   kind?: string;
 }
 
+interface PreviewQuery {
+  kind?: string;
+  url?: string;
+  versionId?: string;
+}
+
 function sendDomainError(reply: FastifyReply, error: unknown) {
   if (error instanceof ServerNotFoundError) {
     return reply.code(404).send({ error: error.message });
@@ -79,6 +85,33 @@ export const artifactRoutes: FastifyPluginAsync = async (app) => {
       return sendDomainError(reply, error);
     }
   });
+
+  app.get(
+    '/api/servers/:id/artifacts/preview',
+    { preHandler: requireAuth },
+    async (request, reply) => {
+      const { id } = request.params as ServerParams;
+      const query = request.query as PreviewQuery;
+      const kind = artifactKindSchema.safeParse(query.kind);
+      if (!kind.success || kind.data === 'core') {
+        return reply.code(400).send({ error: 'kind query parameter must be plugin|mod|datapack' });
+      }
+      if (!query.url) {
+        return reply.code(400).send({ error: 'url query parameter is required' });
+      }
+
+      try {
+        const preview = await app.artifactInstallService.preview(id, {
+          kind: kind.data,
+          modrinthUrl: query.url,
+          versionId: query.versionId,
+        });
+        return preview;
+      } catch (error) {
+        return sendDomainError(reply, error);
+      }
+    },
+  );
 
   app.post('/api/servers/:id/artifacts', { preHandler: requireAuth }, async (request, reply) => {
     const parsed = installArtifactInputSchema.safeParse(request.body);

@@ -4,6 +4,7 @@ import { eq } from 'drizzle-orm';
 import type {
   Artifact,
   ArtifactKind,
+  ArtifactPreview,
   InstallArtifactInput,
   InstallCoreInput,
   Server,
@@ -97,6 +98,10 @@ export interface ArtifactInstallService {
     userId: string | null,
   ): Promise<{ artifact: Artifact }>;
   list(serverId: string): Artifact[];
+  preview(
+    serverId: string,
+    input: { kind: ArtifactKind; modrinthUrl: string; versionId?: string },
+  ): Promise<ArtifactPreview>;
   setEnabled(
     serverId: string,
     artifactId: string,
@@ -250,6 +255,58 @@ export function createArtifactInstallService(
     );
 
     return { server: requireServer(serverId), artifact };
+  }
+
+  async function preview(
+    serverId: string,
+    input: { kind: ArtifactKind; modrinthUrl: string; versionId?: string },
+  ): Promise<ArtifactPreview> {
+    const server = requireServer(serverId);
+    if (!server.mcVersion) {
+      throw new ArtifactInstallError('Server has no Minecraft version; set one before installing');
+    }
+
+    const loaders = modrinthLoadersForCore(server.coreType);
+    if (input.kind === 'plugin' && loaders.length === 0) {
+      throw new ArtifactInstallError('This server core does not support plugins');
+    }
+    if (input.kind === 'mod' && !loaders.includes('fabric')) {
+      throw new ArtifactInstallError('Only Fabric servers support mods right now');
+    }
+
+    const resolution = await resolveModrinthPage(input.modrinthUrl, {
+      gameVersion: server.mcVersion,
+      loaders,
+      versionId: input.versionId,
+      fetchImpl,
+    });
+
+    if (!resolution.version) {
+      return { project: projectInfo(resolution.project), versionId: null, dependencies: [] };
+    }
+
+    if (resolution.project.projectType !== input.kind) {
+      throw new ArtifactInstallError(
+        `Modrinth project is a ${resolution.project.projectType}, not a ${input.kind}`,
+      );
+    }
+
+    const dependencies = await resolveRequiredDependencies(resolution.version, {
+      gameVersion: server.mcVersion,
+      loaders,
+      fetchImpl,
+    });
+
+    return {
+      project: projectInfo(resolution.project),
+      versionId: resolution.version.id,
+      dependencies: dependencies.map((dependency) => ({
+        projectId: dependency.project.id,
+        versionId: dependency.version.id,
+        filename: dependency.version.primaryFile.filename,
+        title: dependency.project.title,
+      })),
+    };
   }
 
   async function installArtifact(
@@ -534,6 +591,7 @@ export function createArtifactInstallService(
       requireServer(serverId);
       return listArtifacts(db, serverId);
     },
+    preview,
     setEnabled,
     remove,
   };
