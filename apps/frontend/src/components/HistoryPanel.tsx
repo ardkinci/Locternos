@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
-import type { AuditEvent, LogLevel, Server, ServerLog, ServerRun } from '@locternos/shared';
+import type { AuditEvent, LogFile, LogLevel, Server, ServerLog, ServerRun } from '@locternos/shared';
 import { api } from '../lib/api';
-import { formatDuration, formatTimestamp } from '../lib/format';
+import { formatBytes, formatDuration, formatTimestamp } from '../lib/format';
 import { inputClass, secondaryButtonClass } from './ui';
 
 interface HistoryPanelProps {
@@ -15,6 +15,7 @@ export function HistoryPanel({ server }: HistoryPanelProps) {
   const [runs, setRuns] = useState<ServerRun[]>([]);
   const [logs, setLogs] = useState<ServerLog[]>([]);
   const [events, setEvents] = useState<AuditEvent[]>([]);
+  const [files, setFiles] = useState<LogFile[]>([]);
   const [query, setQuery] = useState('');
   const [level, setLevel] = useState<LogLevel | ''>('');
   const [runId, setRunId] = useState('');
@@ -22,7 +23,7 @@ export function HistoryPanel({ server }: HistoryPanelProps) {
   const [busy, setBusy] = useState(false);
 
   const load = useCallback(async () => {
-    const [runList, logList, auditList] = await Promise.all([
+    const [runList, logList, auditList, fileList] = await Promise.all([
       api.listRuns(server.id),
       api.listLogs(server.id, {
         query: query.trim() || undefined,
@@ -31,8 +32,14 @@ export function HistoryPanel({ server }: HistoryPanelProps) {
         limit: 300,
       }),
       api.listAuditEvents(server.id),
+      api.listLogFiles(server.id),
     ]);
-    return { runs: runList.runs, logs: logList.logs, events: auditList.events };
+    return {
+      runs: runList.runs,
+      logs: logList.logs,
+      events: auditList.events,
+      files: fileList.files,
+    };
   }, [server.id, query, level, runId]);
 
   useEffect(() => {
@@ -43,6 +50,7 @@ export function HistoryPanel({ server }: HistoryPanelProps) {
         setRuns(result.runs);
         setLogs(result.logs);
         setEvents(result.events);
+        setFiles(result.files);
       })
       .catch((err: unknown) => {
         if (active) setError(err instanceof Error ? err.message : String(err));
@@ -148,6 +156,7 @@ export function HistoryPanel({ server }: HistoryPanelProps) {
                   setRuns(result.runs);
                   setLogs(result.logs);
                   setEvents(result.events);
+                  setFiles(result.files);
                 })
                 .catch((err: unknown) => {
                   setError(err instanceof Error ? err.message : String(err));
@@ -174,6 +183,31 @@ export function HistoryPanel({ server }: HistoryPanelProps) {
             ))
           )}
         </div>
+      </section>
+
+      <section className="rounded-lg border border-slate-800 bg-slate-900/60 p-4">
+        <h2 className="text-lg font-semibold">Raw log files</h2>
+        {files.length === 0 ? (
+          <p className="mt-2 text-sm text-slate-500">No raw log files on disk.</p>
+        ) : (
+          <ul className="mt-2 divide-y divide-slate-800">
+            {files.map((file) => (
+              <li key={file.name} className="flex items-center justify-between gap-3 py-2 text-sm">
+                <span className="truncate text-slate-300">{file.name}</span>
+                <span className="shrink-0 text-xs text-slate-500">
+                  {formatBytes(file.sizeBytes)} · {formatTimestamp(file.modifiedAt)}
+                </span>
+                <a
+                  className="shrink-0 rounded-md border border-slate-700 px-2 py-1 text-xs text-slate-300 hover:bg-slate-800"
+                  href={api.logFileUrl(server.id, file.name)}
+                  download={file.name}
+                >
+                  Download
+                </a>
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
 
       <section className="rounded-lg border border-slate-800 bg-slate-900/60 p-4">
