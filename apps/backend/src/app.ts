@@ -12,11 +12,17 @@ import { ensureDataLayout } from './data-dir.js';
 import { createJavaRuntimeService, type JavaRuntimeService } from './java/runtime-service.js';
 import { recoverOrphanedRuns } from './runs/service.js';
 import { createArtifactInstallService, type ArtifactInstallService } from './artifacts/install-service.js';
+import {
+  createServerRuntimeService,
+  type ServerRuntimeService,
+  type ServerRuntimeServiceOptions,
+} from './process/manager.js';
 import { artifactRoutes } from './routes/artifacts.js';
 import { authRoutes } from './routes/auth.js';
 import { healthRoutes } from './routes/health.js';
 import { javaRoutes } from './routes/java.js';
 import { serverRoutes } from './routes/servers.js';
+import { runtimeRoutes } from './routes/runtime.js';
 import { setupRoutes } from './routes/setup.js';
 import { wsRoutes } from './routes/ws.js';
 
@@ -26,6 +32,7 @@ declare module 'fastify' {
     config: Config;
     javaRuntimeService: JavaRuntimeService;
     artifactInstallService: ArtifactInstallService;
+    runtimeService: ServerRuntimeService;
   }
 }
 
@@ -34,6 +41,13 @@ export interface BuildAppOptions {
   javaRuntimeService?: JavaRuntimeService;
   /** Test hook to replace network bound artifact installs. */
   artifactInstallService?: ArtifactInstallService;
+  /** Test hook to tune process lifecycle timings. */
+  runtimeServiceOptions?: Pick<
+    ServerRuntimeServiceOptions,
+    'readyTimeoutMs' | 'stopTimeoutMs' | 'logFlushIntervalMs' | 'metricsIntervalMs' | 'diskIntervalMs'
+  >;
+  /** Test hook to replace the process lifecycle service entirely. */
+  runtimeService?: ServerRuntimeService;
 }
 
 export async function buildApp(
@@ -64,7 +78,19 @@ export async function buildApp(
     'artifactInstallService',
     options.artifactInstallService ?? createArtifactInstallService({ db: database.db, config }),
   );
-  app.addHook('onClose', async () => database.close());
+  const runtimeService =
+    options.runtimeService ??
+    createServerRuntimeService({
+      db: database.db,
+      config,
+      logger: app.log,
+      ...options.runtimeServiceOptions,
+    });
+  app.decorate('runtimeService', runtimeService);
+  app.addHook('onClose', async () => {
+    await runtimeService.shutdown();
+    database.close();
+  });
 
   app.decorateRequest('user', null);
   await app.register(cookie);
@@ -76,6 +102,7 @@ export async function buildApp(
   await app.register(setupRoutes);
   await app.register(authRoutes);
   await app.register(serverRoutes);
+  await app.register(runtimeRoutes);
   await app.register(javaRoutes);
   await app.register(artifactRoutes);
   await app.register(wsRoutes);
