@@ -1,5 +1,5 @@
 import path from 'node:path';
-import { mkdir, rm } from 'node:fs/promises';
+import { mkdir, rename, rm } from 'node:fs/promises';
 import { eq } from 'drizzle-orm';
 import type {
   Artifact,
@@ -17,6 +17,7 @@ import {
   listArtifacts,
   recordArtifact,
   getArtifact,
+  setArtifactEnabled as setArtifactEnabledRow,
 } from '../artifacts/service.js';
 import {
   downloadJarFromUrl,
@@ -96,6 +97,12 @@ export interface ArtifactInstallService {
     userId: string | null,
   ): Promise<{ artifact: Artifact }>;
   list(serverId: string): Artifact[];
+  setEnabled(
+    serverId: string,
+    artifactId: string,
+    enabled: boolean,
+    userId: string | null,
+  ): Promise<Artifact | null>;
   remove(serverId: string, artifactId: string, userId: string | null): Promise<boolean>;
 }
 
@@ -445,6 +452,50 @@ export function createArtifactInstallService(
     );
   }
 
+  async function setEnabled(
+    serverId: string,
+    artifactId: string,
+    enabled: boolean,
+    userId: string | null,
+  ): Promise<Artifact | null> {
+    const server = requireServer(serverId);
+    const artifact = getArtifact(db, artifactId);
+    if (!artifact || artifact.serverId !== serverId) return null;
+    if (artifact.kind === 'core') {
+      throw new ArtifactInstallError('The server core cannot be disabled');
+    }
+
+    const directory = artifactDirectory(config, server, artifact.kind);
+    const filename = path.basename(artifact.filename);
+    const activePath = path.join(directory, filename);
+    const disabledPath = `${activePath}.disabled`;
+
+    if (artifact.enabled === enabled) {
+      return artifact;
+    }
+
+    if (enabled) {
+      await rename(disabledPath, activePath);
+    } else {
+      await rename(activePath, disabledPath);
+    }
+
+    const updated = setArtifactEnabledRow(db, artifactId, enabled);
+    if (updated) {
+      recordAuditEvent(
+        db,
+        {
+          action: enabled ? 'artifact.enabled' : 'artifact.disabled',
+          serverId,
+          userId,
+          details: { kind: artifact.kind, filename: artifact.filename },
+        },
+        now(),
+      );
+    }
+    return updated;
+  }
+
   async function remove(
     serverId: string,
     artifactId: string,
@@ -457,6 +508,7 @@ export function createArtifactInstallService(
     const filename = path.basename(artifact.filename);
     const filePath = path.join(artifactDirectory(config, server, artifact.kind), filename);
     await rm(filePath, { force: true });
+    await rm(`${filePath}.disabled`, { force: true });
 
     const removed = deleteArtifactRow(db, artifactId);
     if (removed) {
@@ -482,6 +534,7 @@ export function createArtifactInstallService(
       requireServer(serverId);
       return listArtifacts(db, serverId);
     },
+    setEnabled,
     remove,
   };
 }

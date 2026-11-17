@@ -3,6 +3,7 @@ import {
   artifactKindSchema,
   installArtifactInputSchema,
   installCoreInputSchema,
+  setArtifactEnabledInputSchema,
 } from '@locternos/shared';
 import { currentUser, requireAuth } from '../auth/guard.js';
 import { ChecksumMismatchError, DownloadError } from '../lib/download.js';
@@ -129,6 +130,33 @@ export const artifactRoutes: FastifyPluginAsync = async (app) => {
       return sendDomainError(reply, error);
     }
   });
+
+  app.patch(
+    '/api/servers/:id/artifacts/:artifactId',
+    { preHandler: requireAuth },
+    async (request, reply) => {
+      const parsed = setArtifactEnabledInputSchema.safeParse(request.body);
+      if (!parsed.success) {
+        return reply.code(400).send({ error: 'Invalid artifact payload', issues: parsed.error.issues });
+      }
+
+      const { id, artifactId } = request.params as ArtifactParams;
+      try {
+        const artifact = await app.artifactInstallService.setEnabled(
+          id,
+          artifactId,
+          parsed.data.enabled,
+          currentUser(request).id,
+        );
+        if (!artifact) {
+          return reply.code(404).send({ error: 'Artifact not found' });
+        }
+        return { artifact };
+      } catch (error) {
+        return sendDomainError(reply, error);
+      }
+    },
+  );
 
   app.delete(
     '/api/servers/:id/artifacts/:artifactId',
