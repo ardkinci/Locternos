@@ -265,6 +265,8 @@ export async function fetchModrinthVersions(
 
 export interface ResolveModrinthOptions extends ModrinthVersionFilter {
   fetchImpl?: typeof fetch;
+  /** Explicit version chosen by the user from a fallback list. */
+  versionId?: string;
 }
 
 /**
@@ -281,9 +283,10 @@ export async function resolveModrinthPage(
 
   const fetchImpl = options.fetchImpl ?? fetch;
   const project = await fetchModrinthProject(parsed.slug, fetchImpl);
+  const requestedVersionId = options.versionId ?? parsed.versionId;
 
-  if (parsed.versionId) {
-    const version = await fetchModrinthVersion(parsed.versionId, fetchImpl);
+  if (requestedVersionId) {
+    const version = await fetchModrinthVersion(requestedVersionId, fetchImpl);
     if (version.projectId !== project.id) {
       throw new ModrinthError('The requested version does not belong to this project');
     }
