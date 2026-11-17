@@ -112,6 +112,20 @@ export async function buildApp(
   });
 
   app.decorateRequest('user', null);
+
+  app.addContentTypeParser('application/json', { parseAs: 'string' }, (_request, body, done) => {
+    const raw = typeof body === 'string' ? body.trim() : '';
+    if (raw.length === 0) {
+      done(null, {});
+      return;
+    }
+    try {
+      done(null, JSON.parse(raw));
+    } catch (error) {
+      done(error as Error, undefined);
+    }
+  });
+
   await app.register(cookie);
   await app.register(cors, { origin: config.corsOrigins });
   await app.register(websocket);
