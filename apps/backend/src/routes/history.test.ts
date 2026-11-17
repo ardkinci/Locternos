@@ -1,4 +1,4 @@
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { after, before, describe, it } from 'node:test';
@@ -68,6 +68,10 @@ async function startTestApp(): Promise<TestContext> {
     serverId,
     details: { pid: 1234 },
   });
+
+  const logDir = path.join(dir, 'servers', 'history', 'logs');
+  await mkdir(logDir, { recursive: true });
+  await writeFile(path.join(logDir, 'latest.log'), 'raw log line\n');
 
   return {
     app,
@@ -148,6 +152,34 @@ describe('history API', () => {
     });
     const logs = res.json<{ logs: unknown[] }>().logs;
     assert.equal(logs.length, 3);
+  });
+
+  it('lists and downloads raw log files', async () => {
+    const listed = await ctx.app.inject({
+      method: 'GET',
+      url: `/api/servers/${ctx.serverId}/logs/files`,
+      headers: { cookie: ctx.cookie },
+    });
+    assert.equal(listed.statusCode, 200);
+    const files = listed.json<{ files: { name: string; sizeBytes: number }[] }>().files;
+    assert.ok(files.some((file) => file.name === 'latest.log'));
+
+    const downloaded = await ctx.app.inject({
+      method: 'GET',
+      url: `/api/servers/${ctx.serverId}/logs/files/latest.log`,
+      headers: { cookie: ctx.cookie },
+    });
+    assert.equal(downloaded.statusCode, 200);
+    assert.match(downloaded.body, /raw log line/);
+  });
+
+  it('rejects raw log paths outside the log directory', async () => {
+    const res = await ctx.app.inject({
+      method: 'GET',
+      url: `/api/servers/${ctx.serverId}/logs/files/..%2F..%2Fserver.properties`,
+      headers: { cookie: ctx.cookie },
+    });
+    assert.equal(res.statusCode, 400);
   });
 
   it('lists audit events', async () => {
