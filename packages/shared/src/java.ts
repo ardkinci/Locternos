@@ -32,6 +32,12 @@ export const javaRuntimeResponseSchema = z.object({
 });
 export type JavaRuntimeResponse = z.infer<typeof javaRuntimeResponseSchema>;
 
+export const installJavaRuntimeResponseSchema = z.object({
+  runtime: javaRuntimeSchema,
+  alreadyInstalled: z.boolean(),
+});
+export type InstallJavaRuntimeResponse = z.infer<typeof installJavaRuntimeResponseSchema>;
+
 /**
  * The Java major version a Minecraft version was built for, together with
  * whether any locally known runtime can run it. Runtimes with an equal or
