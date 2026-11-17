@@ -132,6 +132,20 @@ export function ArtifactsPanel({ server, onChanged }: ArtifactsPanelProps) {
     }
   }
 
+  async function toggle(artifact: Artifact) {
+    setError(null);
+    setBusy(true);
+    try {
+      await api.setArtifactEnabled(server.id, artifact.id, !artifact.enabled);
+      const installed = await load();
+      setArtifacts(installed);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function remove(artifact: Artifact) {
     setError(null);
     setBusy(true);
@@ -264,16 +278,29 @@ export function ArtifactsPanel({ server, onChanged }: ArtifactsPanelProps) {
                   <p className="text-xs text-slate-500">
                     {artifact.kind} · {artifact.sourceType} ·{' '}
                     {formatTimestamp(artifact.installedAt)}
+                    {artifact.kind !== 'core' && !artifact.enabled ? ' · disabled' : ''}
                   </p>
                 </div>
-                <button
-                  type="button"
-                  className="shrink-0 rounded-md border border-rose-800 px-2 py-1 text-xs text-rose-300 hover:bg-rose-950"
-                  disabled={busy}
-                  onClick={() => void remove(artifact)}
-                >
-                  Delete
-                </button>
+                <div className="flex shrink-0 items-center gap-2">
+                  {artifact.kind !== 'core' && (
+                    <button
+                      type="button"
+                      className="rounded-md border border-slate-700 px-2 py-1 text-xs text-slate-300 hover:bg-slate-800"
+                      disabled={busy}
+                      onClick={() => void toggle(artifact)}
+                    >
+                      {artifact.enabled ? 'Disable' : 'Enable'}
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    className="rounded-md border border-rose-800 px-2 py-1 text-xs text-rose-300 hover:bg-rose-950"
+                    disabled={busy}
+                    onClick={() => void remove(artifact)}
+                  >
+                    Delete
+                  </button>
+                </div>
               </li>
             ))}
           </ul>

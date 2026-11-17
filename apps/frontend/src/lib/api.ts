@@ -10,6 +10,7 @@ import {
   installJavaRuntimeResponseSchema,
   javaRuntimeListResponseSchema,
   javaVersionRequirementSchema,
+  logFileListResponseSchema,
   paperBuildsResponseSchema,
   paperVersionsResponseSchema,
   serverConsoleResponseSchema,
@@ -19,6 +20,7 @@ import {
   serverRunListResponseSchema,
   serverRuntimeResponseSchema,
   sessionResponseSchema,
+  setArtifactEnabledResponseSchema,
   setupStatusSchema,
   updateServerInputSchema,
   vanillaVersionsResponseSchema,
@@ -175,6 +177,12 @@ export const api = {
   },
   removeArtifact: (id: string, artifactId: string) =>
     requestVoid(`/servers/${id}/artifacts/${artifactId}`, del),
+  setArtifactEnabled: (id: string, artifactId: string, enabled: boolean) =>
+    request(
+      `/servers/${id}/artifacts/${artifactId}`,
+      setArtifactEnabledResponseSchema,
+      patch({ enabled }),
+    ),
 
   listJavaRuntimes: () => request('/java/runtimes', javaRuntimeListResponseSchema),
   javaRequirement: (mcVersion: string): Promise<JavaVersionRequirement> =>
@@ -204,4 +212,7 @@ export const api = {
       serverLogListResponseSchema,
     ),
   listAuditEvents: (id: string) => request(`/servers/${id}/audit`, auditEventListResponseSchema),
+  listLogFiles: (id: string) => request(`/servers/${id}/logs/files`, logFileListResponseSchema),
+  logFileUrl: (id: string, name: string) =>
+    `/api/servers/${id}/logs/files/${encodeURIComponent(name)}`,
 };
