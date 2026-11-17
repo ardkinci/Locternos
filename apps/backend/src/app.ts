@@ -26,6 +26,12 @@ import { healthRoutes } from './routes/health.js';
 import { javaRoutes } from './routes/java.js';
 import { serverRoutes } from './routes/servers.js';
 import { runtimeRoutes } from './routes/runtime.js';
+import { historyRoutes } from './routes/history.js';
+import { providerRoutes } from './routes/providers.js';
+import {
+  createProviderCatalogService,
+  type ProviderCatalogService,
+} from './providers/catalog-service.js';
 import { setupRoutes } from './routes/setup.js';
 import { wsRoutes } from './routes/ws.js';
 
@@ -36,6 +42,7 @@ declare module 'fastify' {
     javaRuntimeService: JavaRuntimeService;
     artifactInstallService: ArtifactInstallService;
     runtimeService: ServerRuntimeService;
+    providerCatalogService: ProviderCatalogService;
   }
 }
 
@@ -55,6 +62,8 @@ export interface BuildAppOptions {
   >;
   /** Test hook to replace the process lifecycle service entirely. */
   runtimeService?: ServerRuntimeService;
+  /** Test hook to replace the network bound provider catalog. */
+  providerCatalogService?: ProviderCatalogService;
 }
 
 export async function buildApp(
@@ -93,6 +102,10 @@ export async function buildApp(
       ...options.runtimeServiceOptions,
     });
   app.decorate('runtimeService', runtimeService);
+  app.decorate(
+    'providerCatalogService',
+    options.providerCatalogService ?? createProviderCatalogService(),
+  );
   app.addHook('onClose', async () => {
     await runtimeService.shutdown();
     database.close();
@@ -109,6 +122,8 @@ export async function buildApp(
   await app.register(authRoutes);
   await app.register(serverRoutes);
   await app.register(runtimeRoutes);
+  await app.register(historyRoutes);
+  await app.register(providerRoutes);
   await app.register(javaRoutes);
   await app.register(artifactRoutes);
   await app.register(wsRoutes);
