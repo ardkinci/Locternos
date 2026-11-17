@@ -1,7 +1,6 @@
-import { eq } from 'drizzle-orm';
 import type { LogRetentionPolicy } from '@locternos/shared';
 import type { Db } from '../db/client.js';
-import { servers, serverLogs, serverRuns } from '../db/schema.js';
+import { servers } from '../db/schema.js';
 
 /** Time intervals in milliseconds. */
 const RETENTION_INTERVALS: Record<LogRetentionPolicy, number | null> = {
@@ -39,18 +38,26 @@ export function cleanupExpiredHistory(db: Db, now = new Date()): { logsDeleted: 
     const cutoffIso = new Date(cutoffMs).toISOString();
 
     // Delete logs older than cutoff.
-    const logsResult = (db.$client as any).prepare(`
+    const logsResult = db.$client
+      .prepare(
+        `
       DELETE FROM server_logs
       WHERE server_id = ? AND timestamp < ?
-    `).run(server.id, cutoffIso) as any;
-    logsDeleted += logsResult.changes || 0;
+    `,
+      )
+      .run(server.id, cutoffIso);
+    logsDeleted += logsResult.changes;
 
     // Delete completed runs older than cutoff (only if stoppedAt is not null).
-    const runsResult = (db.$client as any).prepare(`
+    const runsResult = db.$client
+      .prepare(
+        `
       DELETE FROM server_runs
       WHERE server_id = ? AND stopped_at IS NOT NULL AND started_at < ?
-    `).run(server.id, cutoffIso) as any;
-    runsDeleted += runsResult.changes || 0;
+    `,
+      )
+      .run(server.id, cutoffIso);
+    runsDeleted += runsResult.changes;
   }
 
   return { logsDeleted, runsDeleted };

@@ -3,8 +3,10 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { after, before, describe, it } from 'node:test';
 import assert from 'node:assert/strict';
+import type { FastifyInstance } from 'fastify';
 import { buildApp } from '../app.js';
 import { loadConfig } from '../config.js';
+import type { Db } from './client.js';
 import { recordAuditEvent, listAuditEvents } from '../audit/service.js';
 import { recordArtifact, listArtifacts, deleteArtifact } from '../artifacts/service.js';
 import { appendServerLogs, listServerLogs, listServerLogsByRun, searchServerLogs } from '../logs/service.js';
@@ -19,8 +21,8 @@ import { cleanupExpiredHistory } from '../retention/cleaner.js';
 import { createServer } from '../servers/service.js';
 
 interface TestApp {
-  app: any; // FastifyInstance
-  db: any;
+  app: FastifyInstance;
+  db: Db;
   cleanup: () => Promise<void>;
 }
 
@@ -329,7 +331,7 @@ describe('database layer services', () => {
       ]);
       finishServerRun(ctx.db, run.id, { exitCode: 0, at: tenDaysAgo });
 
-      const result = cleanupExpiredHistory(ctx.db, new Date());
+      cleanupExpiredHistory(ctx.db, new Date());
       // Logs for forever server should not be deleted.
       const logs = listServerLogsByRun(ctx.db, run.id);
       assert.ok(logs.some((log) => log.message === 'Forever log'));

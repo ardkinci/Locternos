@@ -8,9 +8,11 @@ import type { Config } from './config.js';
 import { openDatabase, type Db } from './db/client.js';
 import { runMigrations } from './db/migrate.js';
 import { ensureDataLayout } from './data-dir.js';
+import { createJavaRuntimeService, type JavaRuntimeService } from './java/runtime-service.js';
 import { recoverOrphanedRuns } from './runs/service.js';
 import { authRoutes } from './routes/auth.js';
 import { healthRoutes } from './routes/health.js';
+import { javaRoutes } from './routes/java.js';
 import { serverRoutes } from './routes/servers.js';
 import { setupRoutes } from './routes/setup.js';
 import { wsRoutes } from './routes/ws.js';
@@ -18,10 +20,20 @@ import { wsRoutes } from './routes/ws.js';
 declare module 'fastify' {
   interface FastifyInstance {
     db: Db;
+    config: Config;
+    javaRuntimeService: JavaRuntimeService;
   }
 }
 
-export async function buildApp(config: Config): Promise<FastifyInstance> {
+export interface BuildAppOptions {
+  /** Test hook to replace filesystem and network bound Java discovery. */
+  javaRuntimeService?: JavaRuntimeService;
+}
+
+export async function buildApp(
+  config: Config,
+  options: BuildAppOptions = {},
+): Promise<FastifyInstance> {
   await ensureDataLayout(config);
 
   const app = Fastify({ logger: { level: config.logLevel } });
@@ -36,6 +48,12 @@ export async function buildApp(config: Config): Promise<FastifyInstance> {
   }
 
   app.decorate('db', database.db);
+  app.decorate('config', config);
+  app.decorate(
+    'javaRuntimeService',
+    options.javaRuntimeService ??
+      createJavaRuntimeService({ runtimesDir: config.paths.runtimes }),
+  );
   app.addHook('onClose', async () => database.close());
 
   app.decorateRequest('user', null);
@@ -47,6 +65,7 @@ export async function buildApp(config: Config): Promise<FastifyInstance> {
   await app.register(setupRoutes);
   await app.register(authRoutes);
   await app.register(serverRoutes);
+  await app.register(javaRoutes);
   await app.register(wsRoutes);
 
   // Serve the built frontend (SPA) in production.
