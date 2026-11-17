@@ -70,13 +70,13 @@ function modrinthRoutes(): Record<string, Handler> {
         id: 'P1',
         slug: 'essentialsx',
         title: 'EssentialsX',
-        project_type: 'plugin',
+        project_type: 'mod',
         description: '',
       }),
     'https://api.modrinth.com/v2/project/lib': () =>
-      json({ id: 'P2', slug: 'lib', title: 'Lib', project_type: 'plugin', description: '' }),
+      json({ id: 'P2', slug: 'lib', title: 'Lib', project_type: 'mod', description: '' }),
     'https://api.modrinth.com/v2/project/P2': () =>
-      json({ id: 'P2', slug: 'lib', title: 'Lib', project_type: 'plugin', description: '' }),
+      json({ id: 'P2', slug: 'lib', title: 'Lib', project_type: 'mod', description: '' }),
     'https://api.modrinth.com/v2/project/P1/version?game_versions=%5B%221.21.4%22%5D&loaders=%5B%22paper%22%2C%22spigot%22%2C%22bukkit%22%5D':
       () =>
         json([
@@ -238,6 +238,24 @@ describe('artifact install service', () => {
 
     const files = await readdir(artifactDirectory(ctx.config, ctx.server, 'plugin'));
     assert.deepEqual(files.sort(), ['essentialsx.jar', 'lib.jar']);
+  });
+
+  it('rejects a Modrinth URL whose path kind differs from the requested kind', async () => {
+    const ctx = await harness(routedFetch(modrinthRoutes()), 'paper');
+    cleanups.push(ctx.cleanup);
+
+    await assert.rejects(
+      ctx.service.installArtifact(
+        ctx.server.id,
+        {
+          kind: 'plugin',
+          sourceType: 'modrinth_page',
+          modrinthUrl: 'https://modrinth.com/mod/essentialsx',
+        },
+        null,
+      ),
+      /Modrinth URL is a mod, not a plugin/,
+    );
   });
 
   it('returns fallback versions when Modrinth has no exact match', async () => {

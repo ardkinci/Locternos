@@ -33,6 +33,7 @@ import { installPaperServer } from '../providers/paper.js';
 import { installFabricServer } from '../providers/fabric.js';
 import {
   modrinthLoadersForCore,
+  parseModrinthUrl,
   resolveModrinthPage,
   resolveRequiredDependencies,
   type ModrinthProject,
@@ -152,6 +153,14 @@ function projectInfo(project: ModrinthProject) {
     title: project.title,
     projectType: project.projectType,
   };
+}
+
+function assertModrinthUrlKind(modrinthUrl: string, kind: ArtifactKind): void {
+  const parsed = parseModrinthUrl(modrinthUrl);
+  if (!parsed) throw new ArtifactInstallError('Unsupported Modrinth URL');
+  if (parsed.projectType !== kind) {
+    throw new ArtifactInstallError(`Modrinth URL is a ${parsed.projectType}, not a ${kind}`);
+  }
 }
 
 export function createArtifactInstallService(
@@ -274,6 +283,8 @@ export function createArtifactInstallService(
       throw new ArtifactInstallError('Only Fabric servers support mods right now');
     }
 
+    assertModrinthUrlKind(input.modrinthUrl, input.kind);
+
     const resolution = await resolveModrinthPage(input.modrinthUrl, {
       gameVersion: server.mcVersion,
       loaders,
@@ -283,12 +294,6 @@ export function createArtifactInstallService(
 
     if (!resolution.version) {
       return { project: projectInfo(resolution.project), versionId: null, dependencies: [] };
-    }
-
-    if (resolution.project.projectType !== input.kind) {
-      throw new ArtifactInstallError(
-        `Modrinth project is a ${resolution.project.projectType}, not a ${input.kind}`,
-      );
     }
 
     const dependencies = await resolveRequiredDependencies(resolution.version, {
@@ -346,6 +351,8 @@ export function createArtifactInstallService(
       throw new ArtifactInstallError('Only Fabric servers support mods right now');
     }
 
+    assertModrinthUrlKind(input.modrinthUrl, input.kind);
+
     const resolution = await resolveModrinthPage(input.modrinthUrl, {
       gameVersion: server.mcVersion,
       loaders,
@@ -359,12 +366,6 @@ export function createArtifactInstallService(
         project: projectInfo(resolution.project),
         fallbackVersions: resolution.fallbackVersions.map(fallbackInfo),
       };
-    }
-
-    if (resolution.project.projectType !== input.kind) {
-      throw new ArtifactInstallError(
-        `Modrinth project is a ${resolution.project.projectType}, not a ${input.kind}`,
-      );
     }
 
     const installed = await downloadJarFromUrl({
@@ -399,7 +400,6 @@ export function createArtifactInstallService(
 
     const dependencyArtifacts: Artifact[] = [];
     for (const dependency of dependencies) {
-      if (dependency.project.projectType !== input.kind) continue;
       const depInstalled = await downloadJarFromUrl({
         url: dependency.version.primaryFile.url,
         destinationDir,
