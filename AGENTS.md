@@ -1,10 +1,10 @@
 # Agent Kuralları — Git, GitHub ve Mimari Standartları
 
-## 0. Commit Disiplini (Zorunlu)
-- **Tam Yetki:** Feature/fix branch'inde çalışırken commit atmak için kullanıcıdan izin veya ek komut **bekleme**. Kullanıcı açıkça *"commit atma"* demedikçe her küçük adımı tamamladığın anda commit atmak **zorunludur** (genel "istenmedikçe commit atma" kuralı bu repoda geçersizdir).
-- **Mikro Döngü (Batch Yasak):**
-  `1 tekil birim düzenle → kontrol/test koş → git add <dosyalar> → git commit → sonraki birime geç`
-  İşi bitirip en sonda toplu commit atmak **yasaktır**.
+## 0. Commit ve Push Disiplini (Zorunlu)
+- **Tam Yetki:** Feature/fix branch'inde çalışırken commit ve push atmak için kullanıcıdan izin veya ek komut **bekleme**. Kullanıcı açıkça *"commit atma"* demedikçe her küçük adım sonrası commit ve push yapmak **zorunludur** (genel "istenmedikçe commit atma" kuralı bu repoda geçersizdir).
+- **Mikro Döngü (Batch ve Biriktirme Yasak):**
+  `1 tekil birim düzenle → kontrol/test koş → git add <dosyalar> → git commit ... && git push -u origin HEAD → sonraki birime geç`
+  İşi bitirip en sonda toplu commit atmak veya lokalde pushlanmamış commit biriktirmek **yasaktır**. (`git push -u origin HEAD` ilk push'ta upstream ayarlar, sonrakilerde ek branch adı veya checkout gerektirmez.)
 - **Commit Sınırları (Her biri ayrı commit):**
   1. Config, bağımlılık veya script değişikliği (`package.json`, `tsconfig`, `.github/`)
   2. `packages/shared` tip veya Zod şeması
@@ -12,7 +12,7 @@
   4. Tekil servis, provider, route grubu veya UI bileşeni (`apps/backend` ve `apps/frontend` aynı commit'te karıştırılmaz)
   5. Test ekleme veya bug fix + regresyon testi
   6. `PROGRESS.md` / doküman güncellemesi
-- **Çıkış Kontrolü:** Yanıtı bitirmeden önce `git status --short` çalıştır. Açıkta iş kaldıysa (ve kullanıcı "commit atma" demediyse) atomic commit'lere bölüp commit'lemeden yanıt dönme.
+- **Çıkış Kontrolü:** Yanıtı bitirmeden önce `git status -sb` çalıştır. Açıkta dosya veya `[ahead N]` (pushlanmamış commit) kaldıysa (ve kullanıcı aksini istemediyse) commit + push tamamlamadan yanıt dönme.
 
 ## 1. Issue-First (`gh issue`)
 - Kod değişikliği, yeni özellik veya tespit edilen hata için **önce GitHub Issue aç**; bağlamı, beklenen davranışı ve varsa yeniden oluşturma adımlarını net yaz.
@@ -29,9 +29,16 @@
   EOF
   ```
 
-## 2. Branch Kuralları
-- **Yasak:** Release push'ları dışında `main` branch'ine doğrudan commit/push yapılmaz.
-- Her iş güncel `main` üzerinden kendi branch'inde geliştirilir: `git checkout -b <type/scope/desc>`
+## 2. Branch Kuralları ve Kapsam Sınırı
+- **Yasaklar:**
+  - Release push'ları dışında `main` branch'ine doğrudan commit/push yapılmaz.
+  - **Lokal `git merge` yasaktır:** Branch'ten yan branch açıp geri `merge:` commit'i atmak (`A → B → A`) veya lokale merge etmek yasaktır; tüm birleştirmeler GitHub PR ile yapılır.
+- **1 Branch = 1 Net Görev / PR:** Her iş güncel `main` üzerinden kendi branch'inde geliştirilir: `git checkout -b <type/scope/desc>`.
+  - Branch adı kapsamı belirler; örneğin backend branch'inde frontend katmanına taşma veya bütün bir fazı tek dev PR'a yığma. Büyük çok-katmanlı işleri sıralı, odaklı PR'lara böl (`shared + backend` PR → `frontend` PR).
+- **Yan Hata / Kapsam Dışı Bulgu (Checkout İsrafı Yapma):**
+  - Mevcut işi **bloklamayan** ilgisiz bir hata fark edersen ara verip branch değiştirme (`checkout`/stash israfı yapma); `gh issue create` ile Issue açıp kullanıcıya bildir ve elindeki branch'i temizce bitir.
+  - Mevcut işi **doğrudan bloklayan** bir sorunsa alt branch + `merge:` commit'i yerine doğrudan bu branch'te `fix(<scope>): ...` commit'i at.
+- **Branch Güncelleme:** `main`'deki yeni PR'ları almak için `merge` değil `git fetch origin && git rebase origin/main` kullan.
 - **Format:** `type/scope/desc` (ör. `feat/backend/server-lifecycle`, `fix/frontend/console-scroll`, `docs/root/agents-guidelines`).
 
 ## 3. Atomic Commit ve 50/72 Kalitesi
@@ -39,6 +46,7 @@
 - **Başlık (`<type>(<scope>): <description>`, <= 50 karakter):**
   - İzinli `type`: `feat | fix | refactor | docs | test | chore | build | ci | perf | style | revert`
   - Küçük harfle başla, **İngilizce emir kipi** kullan (`add`, `fix`, `enforce`, `extract`, `validate`, `prevent`, `wire`, `reject`).
+  - Başlığı kısa tut; gereksiz İngilizce artikelleri (`the`, `a`, `an`) at (ör. `extend panel api client`, `cover papermc v3 responses`).
   - En az 2 kelime ve >= 10 karakter olsun; sona nokta (`.`) koyma; `added`/`fixing`/`updated` gibi kipler kullanma.
   - Dosya adını değil **davranışı / amacı** yaz.
   - **Yasak muğlak kalıplar:** `fix bug`, `update files`, `update code`, `improve logic`, `add changes`, `cleanup`, `wip`, `update <filename>`.
@@ -55,11 +63,11 @@
   ```
 
 ## 4. PR ve Merge (`gh pr`)
-- Branch'ler lokalde `main`'e merge edilmez; yalnızca GitHub PR üzerinden birleştirilir.
+- Branch'ler lokalde başka bir branch'e veya `main`'e merge edilmez; yalnızca GitHub PR üzerinden birleştirilir (`MERGE = GitHub PR`).
 - PR gövdesi `.github/PULL_REQUEST_TEMPLATE.md` şablonuna uymalı ve `Resolves #<issue_no>` içermelidir.
 - **Push ve PR açma:**
   ```bash
-  git push -u origin <branch>
+  git push -u origin HEAD
   gh pr create --base main --title "type(scope): desc" --body-file - <<'EOF'
   ## Description
   <summary of changes in English>
@@ -110,7 +118,7 @@
 - **`PROGRESS.md` Takibi:**
   - Geliştirme sırası `PROGRESS.md` fazlarına göre yürür (`Phase 1` → `Phase 2` → `Phase 3`).
   - Göreve başlamadan önce `PROGRESS.md` içindeki mimari kararları ve alt maddeleri referans al.
-  - Yalnızca tamamlanıp doğrulanan maddeleri `[ ]` → `[x]` olarak güncelle.
+  - Tüm fazı tek PR'da işaretlemeye çalışma; yalnızca bu PR'da tamamlanıp doğrulanan alt maddeleri `[ ]` → `[x]` olarak güncelle.
 
 ## 7. Dil Kuralları
 - **Kod ve Git/GitHub (Zorunlu İngilizce):** Tüm Issue'lar, PR'lar, commit mesajları, branch adları ve kod içindeki tüm tanımlayıcılar (sınıf, fonksiyon, değişken, tip, dosya adları, yorumlar) **İngilizce** olmalıdır.
