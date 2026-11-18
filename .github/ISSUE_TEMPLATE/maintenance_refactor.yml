@@ -1,0 +1,33 @@
+name: Maintenance / Refactor
+description: Internal task, refactor, naming/config change, CI, or test coverage
+title: "[Chore]: "
+labels: ["chore"]
+body:
+  - type: dropdown
+    id: category
+    attributes:
+      label: Category
+      options:
+        - Refactor / Naming
+        - Config / CI / Dependencies
+        - Tests / Coverage
+        - Cleanup / Tech Debt
+    validations:
+      required: true
+  - type: textarea
+    id: summary
+    attributes:
+      label: What needs to change and why?
+      description: Describe the current state, target state, and motivation.
+    validations:
+      required: true
+  - type: textarea
+    id: impact
+    attributes:
+      label: Scope & Migration Notes
+      description: Affected files, breaking changes, or data/path migration steps (if any).
+      placeholder: |
+        - Affected areas:
+        - Breaking change / migration needed:
+    validations:
+      required: false
